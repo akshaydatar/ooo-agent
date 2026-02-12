@@ -22,7 +22,10 @@ export function SetupWizard() {
 
     const [preferences, setPreferences] = useState({
         autoReply: true,
-        indexDrive: true
+        indexDrive: true,
+        managerName: "",
+        managerEmail: "",
+        coveragePlanLink: ""
     })
 
     const handleConnect = async (service: keyof typeof connections) => {
@@ -45,6 +48,12 @@ export function SetupWizard() {
 
     const handleNext = () => {
         if (step < 3) {
+            if (step === 2) {
+                if (!preferences.managerName || !preferences.managerEmail) {
+                    alert("Please provide manager details for fallback safety.");
+                    return;
+                }
+            }
             setStep(step + 1)
         } else {
             handleComplete()
@@ -163,6 +172,41 @@ export function SetupWizard() {
                                     checked={preferences.indexDrive}
                                     onCheckedChange={(c) => setPreferences(p => ({ ...p, indexDrive: c }))}
                                 />
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t">
+                                <h4 className="font-medium">Fallback & Safety</h4>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="managerName">Manager Name *</Label>
+                                    <input
+                                        id="managerName"
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="Jane Doe"
+                                        value={preferences.managerName}
+                                        onChange={(e) => setPreferences(p => ({ ...p, managerName: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="managerEmail">Manager Email *</Label>
+                                    <input
+                                        id="managerEmail"
+                                        type="email"
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="jane@company.com"
+                                        value={preferences.managerEmail}
+                                        onChange={(e) => setPreferences(p => ({ ...p, managerEmail: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="coveragePlan">Coverage Plan Link (Optional)</Label>
+                                    <input
+                                        id="coveragePlan"
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="https://docs.google.com/..."
+                                        value={preferences.coveragePlanLink}
+                                        onChange={(e) => setPreferences(p => ({ ...p, coveragePlanLink: e.target.value }))}
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}

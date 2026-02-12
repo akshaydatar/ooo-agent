@@ -14,6 +14,7 @@ export interface LLMResponse {
 
 export interface LLMProvider {
     generate(request: LLMRequest): Promise<LLMResponse>;
+    embed(text: string): Promise<number[]>;
 }
 
 export class MockLLMProvider implements LLMProvider {
@@ -52,5 +53,67 @@ Thanks for your email. I am currently out of the office with limited access to e
                 completionTokens: 50
             }
         };
+    };
+
+    async embed(text: string): Promise<number[]> {
+        // Return 1536 random numbers (standard embedding size)
+        return Array(1536).fill(0).map(() => Math.random());
+    }
+}
+
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+export class GeminiLLMProvider implements LLMProvider {
+    private genAI: GoogleGenerativeAI;
+    private model: any;
+
+    constructor(apiKey: string) {
+        this.genAI = new GoogleGenerativeAI(apiKey);
+        this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    }
+
+    async generate(request: LLMRequest): Promise<LLMResponse> {
+        console.log(`[GeminiLLM] Generating response...`);
+
+        const chat = this.model.startChat({
+            history: [
+                {
+                    role: "user",
+                    parts: [{ text: `System Instruction: ${request.systemPrompt}` }],
+                },
+                {
+                    role: "model",
+                    parts: [{ text: "Understood." }],
+                },
+            ],
+            generationConfig: {
+                maxOutputTokens: 1000,
+            },
+        });
+
+        const result = await chat.sendMessage(request.userPrompt);
+        const response = await result.response;
+        const text = response.text();
+
+        return {
+            content: text,
+            usage: {
+                promptTokens: 0, // Gemini SDK doesn't always return this easily in simple call
+                completionTokens: 0
+            }
+        };
+    }
+
+    async embed(text: string): Promise<number[]> {
+        try {
+            const embeddingModel = this.genAI.getGenerativeModel({ model: "models/gemini-embedding-001" });
+            const result = await embeddingModel.embedContent(text);
+            return result.embedding.values;
+        } catch (error) {
+            console.error("Gemini Embed Error:", error);
+            // Fallback to random if real embedding fails (for demo purposes)
+            // In production we should throw, but here we want to see the error.
+            throw error;
+        }
     }
 }

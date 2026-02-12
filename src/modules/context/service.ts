@@ -2,17 +2,37 @@ import { prisma } from '@/lib/db';
 import { recursiveCharacterSplit } from '@/lib/chunking';
 import { MCPClient } from '@/lib/mcp/client';
 import { MockMCPClient } from '@/lib/mcp/mock-adapter';
+import { StdioMCPClient } from '@/lib/mcp/stdio-client';
+import { loadMCPConfig } from '@/lib/mcp/config';
 import { SQLiteVectorStore, VectorStore } from '@/lib/vector-store';
 import { ContextItem, ContextQuery, ContextServiceConfig } from './types';
+
+import { MockLLMProvider, GeminiLLMProvider, LLMProvider } from "@/lib/llm";
 
 export class ContextService {
     private vectorStore: VectorStore;
     private mcp: MCPClient;
+    private llm: LLMProvider;
 
     constructor(config?: ContextServiceConfig) {
         this.vectorStore = new SQLiteVectorStore();
-        // In a real app, we'd inject this or load from config
-        this.mcp = new MockMCPClient();
+
+        // 1. Setup LLM Provider
+        if (process.env.GEMINI_API_KEY) {
+            this.llm = new GeminiLLMProvider(process.env.GEMINI_API_KEY);
+        } else {
+            console.log("No GEMINI_API_KEY found, falling back to MockLLM");
+            this.llm = new MockLLMProvider();
+        }
+
+        // 2. Setup MCP Client
+        const mcpConfig = loadMCPConfig();
+        if (mcpConfig.servers.length > 0) {
+            this.mcp = new StdioMCPClient(mcpConfig.servers[0]);
+            (this.mcp as StdioMCPClient).connect().catch(e => console.error("Failed to connect MCP", e));
+        } else {
+            this.mcp = new MockMCPClient();
+        }
     }
     /**
      * Index a new item (email, doc, calendar event) into the vector store and database.
@@ -33,16 +53,19 @@ export class ContextService {
         const chunks = recursiveCharacterSplit(item.content, 1000, 200);
 
         // 3. Generate embeddings & store chunks
-        // TODO: Replace mock embedding with actual OpenAI/LLM call
-        const mockEmbedding = Array(1536).fill(0).map(() => Math.random());
+        const embedding = await this.llm.embed(item.content); // Embed full content for now, or per chunk?
+        // Real logic: Embed EACH chunk.
 
-        const chunkData = chunks.map((chunkText, index) => ({
-            contextItemId: savedItem.id,
-            content: chunkText,
-            // In a real app we'd batch-generate embeddings here
-            embedding: JSON.stringify(mockEmbedding),
-            index,
-        }));
+        const chunkData = [];
+        for (let i = 0; i < chunks.length; i++) {
+            const chunkVector = await this.llm.embed(chunks[i]);
+            chunkData.push({
+                contextItemId: savedItem.id,
+                content: chunks[i],
+                embedding: JSON.stringify(chunkVector),
+                index: i,
+            });
+        }
 
         // Batch insert chunks
         if (chunkData.length > 0) {
@@ -66,15 +89,27 @@ export class ContextService {
         // For V1 routing testing, we return mock items if DB is empty, 
         // or we could fetch recent items from DB.
 
-        // Check if we have items in DB to return, otherwise mock via MCP
-        const items = await prisma.contextItem.findMany({
-            take: 5,
-            where: {
-                content: {
-                    contains: params.query
-                }
-            }
-        });
+        // 1. Generate query embedding
+        const queryVector = await this.llm.embed(params.query);
+
+        // 2. Search Vector Store
+        const results = await this.vectorStore.similaritySearch(queryVector, 5);
+
+        // Map results back to ContextItem format (partially, since we only have chunks)
+        if (results.length > 0) {
+            return results.map(r => ({
+                id: 'chunk-' + Math.random(), // Temporary ID since we aren't fetching the parent item fully efficiently yet
+                type: 'document', // inferred
+                content: r.content,
+                metadata: r.metadata,
+                createdAt: new Date()
+            } as ContextItem));
+        }
+
+        // Fallback or additional check: If vector store plain empty, check DB directly? 
+        // For now, vector store matches what's in DB.
+
+        const items: any[] = []; // Clear old logic variable
 
         if (items.length > 0) {
             // Parse metadata string back to object

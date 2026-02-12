@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User role enum (SQLite does not support enums, using String)
+// enum UserRole {
+//   USER
+//   ADMIN
+// }
+
+// Core User & Auth
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  avatar        String?
+  role          String    @default("USER") // Type: USER | ADMIN
+  orgId         String?
+  organization  Organization? @relation(fields: [orgId], references: [id])
+  
+  // OOO Configuration
+  agentEnabled  Boolean   @default(false)
+  oooStartDate  DateTime?
+  oooEndDate    DateTime?
+  
+  // Relations
+  coverageMaps  CoverageMap[]
+  rules         ResponseRule[]
+  activity      ActivityLog[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Organization {
+  id          String @id @default(cuid())
+  name        String
+  domain      String @unique
+  users       User[]
+  policies    DataPolicy[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Configuration
+model CoverageMap {
+  id          String @id @default(cuid())
+  userId      String
+  topic       String
+  contactId   String // User ID of coverage person
+  user        User   @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+
+// Audit & Logs
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String   // "EMAIL_RESPONDED", "ESCALATED"
+  metadata    String?  // JSON string
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+// Data Policy
+model DataPolicy {
+  id             String @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  rules          String // JSON string
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  responseRules  ResponseRule[]
+}
+
+// Context Engine
+model ContextItem {
+  id        String   @id @default(cuid())
+  type      String   // email, document, calendar
+  content   String
+  metadata  String   // JSON string
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chunks    ContextChunk[]
+}
+
+model ContextChunk {
+  id            String      @id @default(cuid())
+  contextItemId String
+  contextItem   ContextItem @relation(fields: [contextItemId], references: [id], onDelete: Cascade)
+  content       String      // The text content of this chunk
+  embedding     String      // JSON string of number[]
+  index         Int         // Sequence order
+}
+
+model ResponseRule {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dataPolicyId   String?
+  dataPolicy     DataPolicy? @relation(fields: [dataPolicyId], references: [id])
+  name           String
+  priority       Int      @default(0)
+  condition      String   // JSON string: { type: 'sender'|'subject', value: string }
+  action         String   // JSON string: { type: 'template', template: string }
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

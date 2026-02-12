@@ -1,0 +1,196 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from "@/components/ui/table"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Search, Filter, Plus, UserPlus, Info } from "lucide-react"
+import { useAgentStore } from "@/lib/store"
+
+interface CoverageItem {
+    id: string;
+    topic: string;
+    contactId: string;
+    // userId is not needed for display mostly
+}
+
+export default function CoveragePage() {
+    const { isIndexing } = useAgentStore()
+    const [searchTerm, setSearchTerm] = useState("")
+    const [coverageItems, setCoverageItems] = useState<CoverageItem[]>([])
+    const [loading, setLoading] = useState(true)
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+    // Form state
+    const [newTopic, setNewTopic] = useState("")
+    const [newContact, setNewContact] = useState("")
+
+    useEffect(() => {
+        fetchCoverage()
+    }, [])
+
+    const fetchCoverage = async () => {
+        try {
+            const res = await fetch('/api/coverage')
+            if (res.ok) {
+                const data = await res.json()
+                setCoverageItems(data)
+            }
+        } catch (error) {
+            console.error("Failed to fetch coverage", error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleCreate = async () => {
+        try {
+            const res = await fetch('/api/coverage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: newTopic, contactId: newContact })
+            })
+            if (res.ok) {
+                setIsDialogOpen(false)
+                setNewTopic("")
+                setNewContact("")
+                fetchCoverage()
+            }
+        } catch (error) {
+            console.error("Failed to create coverage", error)
+        }
+    }
+
+    const filteredItems = coverageItems.filter(item =>
+        item.topic.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    return (
+        <div className="space-y-6">
+            {isIndexing && (
+                <Alert className="bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-500" />
+                    <AlertTitle className="text-blue-700">Indexing in progress...</AlertTitle>
+                    <AlertDescription className="text-blue-600">
+                        Analyzing your emails and documents. The coverage map will be auto-populated shortly.
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Coverage Map</h1>
+                    <p className="text-muted-foreground mt-2">
+                        Assign coverage for your projects and responsibilities.
+                    </p>
+                </div>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Topic
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add New Coverage Topic</DialogTitle>
+                            <DialogDescription>Define a topic and assign a coverage person.</DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="topic" className="text-right">Topic</Label>
+                                <Input id="topic" value={newTopic} onChange={e => setNewTopic(e.target.value)} className="col-span-3" placeholder="Project X" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="contact" className="text-right">Contact</Label>
+                                <Input id="contact" value={newContact} onChange={e => setNewContact(e.target.value)} className="col-span-3" placeholder="Jane Doe" />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleCreate}>Save</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            <div className="flex items-center gap-4">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search topics..."
+                        className="pl-9"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <Button variant="outline">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filter
+                </Button>
+            </div>
+
+            <div className="rounded-md border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Topic / Project</TableHead>
+                            <TableHead>Coverage Person</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center h-24">Loading...</TableCell>
+                            </TableRow>
+                        ) : filteredItems.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No topics found. Add one to get started.</TableCell>
+                            </TableRow>
+                        ) : (
+                            filteredItems.map((item) => (
+                                <TableRow key={item.id}>
+                                    <TableCell className="font-medium">{item.topic}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarFallback>{item.contactId[0]}</AvatarFallback>
+                                            </Avatar>
+                                            <span>{item.contactId}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline">Active</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="sm">Edit</Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+        </div>
+    )
+}

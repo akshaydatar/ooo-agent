@@ -1,0 +1,4 @@
+# SSH & Remote Interaction
+- **Non-Interactive Mode**: Always assume a non-interactive terminal environment.
+- **Strict Host Checking**: If the agent encounters a 'Known Hosts' prompt, use `ssh-keyscan` to automate the trust process rather than waiting for user input.
+- **Git Config**: Ensure `core.askPass` is disabled or handled by the system keychain to prevent UI hangs.

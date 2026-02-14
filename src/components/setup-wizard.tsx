@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Check, ChevronRight, Mail, Calendar, MessageSquare, Loader2 } from "lucide-react"
+import { Check, ChevronRight, Mail, Calendar, MessageSquare, Loader2, HardDrive } from "lucide-react"
 import { checkMCPConnection } from "@/app/actions/mcp"
 
 export function SetupWizard() {
@@ -14,9 +14,12 @@ export function SetupWizard() {
     const [step, setStep] = useState(1)
     const [isLoading, setIsLoading] = useState(false)
 
-    const [connections, setConnections] = useState({
-        gmail: false,
-        calendar: false,
+    const [connections, setConnections] = useState<{
+        googleWorkspace: boolean
+        slack: boolean
+        [key: string]: boolean
+    }>({
+        googleWorkspace: false,
         slack: false
     })
 
@@ -28,7 +31,7 @@ export function SetupWizard() {
         coveragePlanLink: ""
     })
 
-    const handleConnect = async (service: keyof typeof connections) => {
+    const handleConnect = async (service: 'google_workspace' | 'slack' | 'gmail' | 'calendar' | 'drive') => {
         setIsLoading(true)
 
         try {
@@ -106,31 +109,28 @@ export function SetupWizard() {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between p-4 border rounded-lg">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-md">
-                                        <Mail className="h-5 w-5 text-red-600" />
+                                    <div className="flex -space-x-2">
+                                        <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-md z-30 ring-2 ring-background">
+                                            <Mail className="h-5 w-5 text-red-600" />
+                                        </div>
+                                        <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-md z-20 ring-2 ring-background">
+                                            <Calendar className="h-5 w-5 text-blue-600" />
+                                        </div>
+                                        <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-md z-10 ring-2 ring-background">
+                                            <HardDrive className="h-5 w-5 text-yellow-600" />
+                                        </div>
                                     </div>
                                     <div>
-                                        <div className="font-medium">Gmail</div>
-                                        <div className="text-sm text-muted-foreground">Read & Draft Emails</div>
+                                        <div className="font-medium">Google Workspace</div>
+                                        <div className="text-sm text-muted-foreground">Mail, Calendar, & Drive</div>
                                     </div>
                                 </div>
-                                <Button variant={connections.gmail ? "outline" : "default"} size="sm" onClick={() => handleConnect("gmail")}>
-                                    {connections.gmail ? "Connected" : "Connect"}
-                                </Button>
-                            </div>
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-md">
-                                        <Calendar className="h-5 w-5 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <div className="font-medium">Calendar</div>
-                                        <div className="text-sm text-muted-foreground">Sync OOO Dates</div>
-                                    </div>
-                                </div>
-                                <Button variant={connections.calendar ? "outline" : "default"} size="sm" onClick={() => handleConnect("calendar")}>
-                                    {connections.calendar ? "Connected" : "Connect"}
+                                <Button
+                                    variant={connections.googleWorkspace ? "outline" : "default"}
+                                    size="sm"
+                                    onClick={() => handleConnect("google_workspace")}
+                                >
+                                    {connections.googleWorkspace ? "Connected" : "Connect"}
                                 </Button>
                             </div>
 

@@ -17,9 +17,18 @@ export async function GET() {
     }
 }
 
+import { z } from 'zod';
+
+const createCoverageSchema = z.object({
+    topic: z.string().min(1),
+    contactId: z.string().min(1),
+    userId: z.string().optional(),
+});
+
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
+        const json = await request.json();
+        const body = createCoverageSchema.parse(json);
         const { topic, contactId, userId } = body;
 
         // For MVP, we might need a default user if not provided, or assume auth.

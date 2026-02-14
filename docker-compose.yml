@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ooo-agent-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/ooo_agent?schema=public
+      - NEXTAUTH_URL=http://localhost:3000
+      - AUTH_SECRET=jEJFiYWhuhfVQIzxH8ZWCqK2IGMALWSkEkRww0rv4Bk= # Change this in prod
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    depends_on:
+      - db
+    networks:
+      - ooo-net
+
+  db:
+    image: postgres:15-alpine
+    container_name: ooo-agent-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ooo_agent
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - ooo-net
+
+volumes:
+  db_data:
+
+networks:
+  ooo-net:
+    driver: bridge

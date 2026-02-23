@@ -51,7 +51,7 @@ const sidebarItems = [
     },
 ]
 
-export function AppSidebar() {
+export function AppSidebar({ user }: { user?: { name?: string | null; email?: string | null; image?: string | null } }) {
     const pathname = usePathname()
 
     return (
@@ -90,12 +90,12 @@ export function AppSidebar() {
                 <Separator className="my-4" />
                 <div className="flex items-center gap-3 px-2">
                     <Avatar className="h-9 w-9">
-                        <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
-                        <AvatarFallback>AK</AvatarFallback>
+                        <AvatarImage src={user?.image || "/placeholder-avatar.jpg"} alt="User" />
+                        <AvatarFallback>{user?.name?.[0] || "U"}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                        <span className="text-sm font-medium">Akshay Datar</span>
-                        <span className="text-xs text-muted-foreground">akd@example.com</span>
+                        <span className="text-sm font-medium">{user?.name || "Guest User"}</span>
+                        <span className="text-sm text-muted-foreground">{user?.email || "No email"}</span>
                     </div>
                 </div>
             </div>

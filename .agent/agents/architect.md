@@ -12,3 +12,11 @@
 - **Common Patterns**:
   - **Data**: Centralized State (Zustand/Redux) vs. Local State.
   - **Backend**: Clean Architecture (Entities -> Use Cases -> Controllers).
+
+  ## Conflict Resolution Strategy
+- **Detection**: When a `/sync` or merge results in a conflict, identify the specific files and lines involved.
+- **Logic Overlap**: Analyze if the conflict is purely stylistic (formatting) or functional (logic changes).
+- **Resolution**: 
+  - Automate resolution for formatting/imports.
+  - For functional conflicts, present the 'Current' vs 'Incoming' logic to the user with a recommendation on which to keep based on the `IMPLEMENTATION_PLAN.md`.
+- **Safety**: Never "force" a resolution that deletes code without a summary explanation.

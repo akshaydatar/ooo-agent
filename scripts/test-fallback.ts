@@ -63,7 +63,9 @@ async function main() {
             receivedAt: new Date(),
             sender: 'client@fail.com',
             subject: 'Important Request',
-            content: 'Hello?'
+            content: 'Hello?',
+            id: 'test-id-123',
+            receivedAt: new Date()
         });
 
         console.log('4. Result received:');

@@ -25,7 +25,7 @@ async function main() {
         console.log("Response Status:", response.status);
         if (data.models) {
             console.log("Available Models:");
-            data.models.forEach((m: any) => {
+            data.models.forEach((m: { name: string; supportedGenerationMethods: string[] }) => {
                 if (m.name.includes("embed")) {
                     console.log(` - ${m.name} (Supported methods: ${m.supportedGenerationMethods})`);
                 }

@@ -20,6 +20,7 @@ export interface DraftResponse {
 }
 
 export interface ResponseGenerationParams {
+    userId: string;
     id: string;
     sender: string;
     subject: string;

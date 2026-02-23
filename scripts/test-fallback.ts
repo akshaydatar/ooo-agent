@@ -58,6 +58,9 @@ async function main() {
     try {
         console.log('3. Calling generateDraft...');
         const draft = await service.generateDraft({
+            userId: 'mock-user-id',
+            id: 'mock-123',
+            receivedAt: new Date(),
             sender: 'client@fail.com',
             subject: 'Important Request',
             content: 'Hello?'

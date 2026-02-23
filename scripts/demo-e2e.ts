@@ -47,6 +47,7 @@ async function main() {
 
     // 3. Simulation: Incoming Email
     const incomingEmail = {
+        userId: userId,
         id: 'msg_incoming_001',
         sender: 'client@bigcorp.com',
         subject: 'Urgent: Question about Gemini Launch',
@@ -97,7 +98,7 @@ async function main() {
     // 5. Routing Engine: Suggest Coverage
     console.log('\n5️⃣  [Routing Engine] Analyzing Coverage...');
     const routingService = new RoutingService();
-    const coverage = await routingService.resolveCoverage("Gemini Launch");
+    const coverage = await routingService.resolveCoverage("test-user-id", "Gemini Launch");
 
     if (coverage) {
         console.log(`   ✅ Recommendation: Contact ${coverage.contact.name} (${coverage.contact.email})`);

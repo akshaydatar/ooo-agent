@@ -1,5 +1,6 @@
-import { ContextService } from '../context/service';
 import type { CoverageRecommendation } from './types';
+import { prisma } from '@/lib/db';
+import { ContextService } from '../context/service';
 
 export class RoutingService {
     private contextService: ContextService;
@@ -10,12 +11,38 @@ export class RoutingService {
 
     /**
      * Determine the best coverage person for a given topic.
+     * Checks manual overrides (CoverageMap) first, then falls back to Context inference.
      */
-    async resolveCoverage(topic: string): Promise<CoverageRecommendation | null> {
-        console.log(`[RoutingService] Resolving coverage for topic: "${topic}"`);
+    async resolveCoverage(userId: string, topic: string): Promise<CoverageRecommendation | null> {
+        console.log(`[RoutingService] Resolving coverage for user ${userId} on topic: "${topic}"`);
 
-        // 1. Query Context
-        const relevantItems = await this.contextService.query({ query: topic });
+        // 1. Check Manual Overrides (CoverageMap)
+        const coverageMaps = await prisma.coverageMap.findMany({
+            where: { userId }
+        });
+
+        for (const map of coverageMaps) {
+            // Basic inclusion match for MVP. E.g., topic="Need help with Billing", map.topic="billing"
+            if (topic.toLowerCase().includes(map.topic.toLowerCase())) {
+                const contact = await prisma.user.findUnique({ where: { id: map.contactId } });
+                if (contact) {
+                    console.log(`[RoutingService] 🎯 Manual override matched: ${map.topic} -> ${contact.email}`);
+                    return {
+                        contact: {
+                            id: contact.id,
+                            name: contact.name || 'Unknown',
+                            email: contact.email || '',
+                            role: 'Designated Coverage'
+                        },
+                        confidence: 1.0,
+                        reason: `Topic perfectly matches manual coverage rule for "${map.topic}"`
+                    };
+                }
+            }
+        }
+
+        // 2. Query Context (Fallback)
+        const relevantItems = await this.contextService.query({ userId, query: topic });
 
         if (relevantItems.length === 0) return null;
 

@@ -17,12 +17,13 @@ async function main() {
     console.log('\n--- Testing Context Service Integration (Drive MCP) ---');
     const contextService = new ContextService();
     // Verify it falls back to MCP when no DB items
-    const results = await contextService.query({ query: 'Gemini' });
+    const results = await contextService.query({ userId: 'test-user-id', query: 'Gemini' });
     console.log('Context Query Result (should form Drive):', results);
 
     console.log('\n--- Testing Response Service Integration (Gmail MCP) ---');
     const responseService = new ResponseService();
     const draft = await responseService.generateDraft({
+        userId: 'test-user-id',
         id: 'msg_1',
         sender: 'boss@example.com',
         subject: 'Urgent Sync',

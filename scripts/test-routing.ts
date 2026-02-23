@@ -6,7 +6,7 @@ async function main() {
     const topic = "Project Gemini";
     console.log(`Testing Routing for topic: "${topic}"...`);
 
-    const recommendation = await service.resolveCoverage(topic);
+    const recommendation = await service.resolveCoverage("test-user-id", topic);
 
     if (recommendation) {
         console.log("✅ Recommendation Found:");

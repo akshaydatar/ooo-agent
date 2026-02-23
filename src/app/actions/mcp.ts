@@ -1,24 +1,32 @@
 "use server"
 
-import { MockMCPClient } from "@/lib/mcp/mock-adapter";
-
-// In a real app, this would use a singleton or connection pool
-const mcp = new MockMCPClient();
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 
 export async function checkMCPConnection(service: 'gmail' | 'drive' | 'slack' | 'calendar') {
-    console.log(`[Server Action] Checking connection for ${service}...`);
+    console.log(`[Server Action] Checking connection for Google Workspace (${service})...`);
 
-    // Simulate a ping to the MCP tool to verify connectivity
     try {
-        const tools = await mcp.listTools();
-        const hasTool = tools.some(t => t.name.startsWith(service));
+        const session = await auth();
+        if (!session?.user?.id) return { success: false, message: 'Not authenticated' };
+
+        const account = await prisma.account.findFirst({
+            where: {
+                userId: session.user.id,
+                provider: 'google',
+            },
+        });
 
         // Artificial delay for UI effect
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        return { success: hasTool, message: hasTool ? 'Connected via MCP' : 'Service not available' };
+        if (account && account.access_token) {
+            return { success: true, message: 'Connected via Google API' };
+        }
+
+        return { success: false, message: 'Service not linked' };
     } catch (error) {
-        console.error('MCP Connection Error:', error);
+        console.error('Connection Error:', error);
         return { success: false, message: 'Connection failed' };
     }
 }

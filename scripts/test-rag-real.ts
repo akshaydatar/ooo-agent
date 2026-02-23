@@ -52,7 +52,7 @@ async function main() {
     console.log(`\n2. Querying: "${query}"`);
     console.log('   (Note: "go live" is semantically similar to "launch", but no keyword overlap)');
 
-    const results = await service.query({ query });
+    const results = await service.query({ userId: 'test-user-id', query });
 
     console.log('\n3. Results:');
     results.forEach((r, i) => {

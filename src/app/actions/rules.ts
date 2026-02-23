@@ -3,22 +3,30 @@
 import { prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { RuleCondition, RuleAction, RulesService } from "@/modules/rules/service"
+import { auth } from "@/lib/auth"
 
 const rulesService = new RulesService()
 
-// Mock User ID for V1
-const USER_ID = "test-user-id"
+// Helper to get authenticated user ID
+async function getUserId(): Promise<string> {
+    const session = await auth()
+    if (!session?.user?.id) throw new Error("Unauthorized")
+    return session.user.id
+}
 
 export async function createRule(data: { name: string, condition: RuleCondition, action: RuleAction }) {
-    await rulesService.createRule(USER_ID, data.name, data.condition, data.action, 0)
+    const userId = await getUserId()
+    await rulesService.createRule(userId, data.name, data.condition, data.action, 0)
     revalidatePath('/dashboard/rules')
 }
 
 export async function getRules() {
-    return await rulesService.getRules(USER_ID)
+    const userId = await getUserId()
+    return await rulesService.getRules(userId)
 }
 
 export async function deleteRule(id: string) {
-    await rulesService.deleteRule(id, USER_ID)
+    const userId = await getUserId()
+    await rulesService.deleteRule(id, userId)
     revalidatePath('/dashboard/rules')
 }

@@ -53,6 +53,7 @@ async function main() {
     console.log('\n--- Testing ResponseService Integration ---');
     const responseService = new ResponseService();
     const draft = await responseService.generateDraft({
+        userId: 'test-user-id',
         id: 'msg_test',
         sender: 'vip@client.com',
         subject: 'Urgent: Server Crash',

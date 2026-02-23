@@ -1,11 +1,9 @@
 import { prisma } from "@/lib/db";
 import { ContextService } from '../context/service';
 import { MockLLMProvider } from "@/lib/llm";
-import { MCPClient } from "@/lib/mcp/client";
-import { MockMCPClient } from '@/lib/mcp/mock-adapter';
-import { StdioMCPClient } from '@/lib/mcp/stdio-client';
-import { loadMCPConfig } from '@/lib/mcp/config';
+import { GmailClient } from '@/lib/google/gmail';
 import { RulesService } from "@/modules/rules/service";
+import { PIIScrubber } from "./pii-scrubber";
 import { RoutingService } from "@/modules/routing/service";
 import { DraftResponse, ResponseGenerationParams } from "./types";
 
@@ -14,16 +12,9 @@ export class ResponseService {
     private contextService = new ContextService();
     private rulesService = new RulesService();
     private routingService = new RoutingService();
-    private mcp: MCPClient;
 
     constructor() {
-        const config = loadMCPConfig();
-        if (config.servers.length > 0) {
-            this.mcp = new StdioMCPClient(config.servers[0]);
-            (this.mcp as StdioMCPClient).connect().catch(e => console.error("Failed to connect MCP", e));
-        } else {
-            this.mcp = new MockMCPClient();
-        }
+        // No setup needed currently
     }
 
     /**
@@ -33,14 +24,16 @@ export class ResponseService {
         console.log(`[ResponseService] Generating draft for: ${params.sender} on topic "${params.subject}"`);
 
         // In a real app, we'd get userId from session or params
-        const userId = "test-user-id";
+        const userId = params.userId;
 
         try {
-            // 1. Evaluate Rules
+            // 1. Evaluate Rules (use original content maybe, or redacted? Let's use redacted for safety)
+            const cleanContent = PIIScrubber.redact(params.content);
+
             const matchedRule = await this.rulesService.evaluate(userId, {
                 sender: params.sender,
                 subject: params.subject,
-                body: params.content
+                body: cleanContent
             });
 
             let systemInstruction = "You are an intelligent OOO Assistant.";
@@ -54,11 +47,11 @@ export class ResponseService {
             // 2. Retrieve Context
             // In a real app, calls ContextService which might use Drive MCP
             // For now, we simulate context retrieval
-            const contextItems = await this.contextService.query({ query: params.subject });
+            const contextItems = await this.contextService.query({ userId, query: params.subject });
             const contextText = contextItems.map(i => i.content).join('\n') || "No specific docs found.";
 
             // 3. Resolve Coverage (Routing)
-            const coverage = await this.routingService.resolveCoverage(params.subject);
+            const coverage = await this.routingService.resolveCoverage(userId, params.subject);
 
             let coverageInfo = "";
             let ccRecipients: string[] = [];
@@ -72,7 +65,7 @@ export class ResponseService {
             const prompt = `
             Incoming Email from: ${params.sender}
             Subject: ${params.subject}
-            Content: ${params.content}
+            Content: ${cleanContent}
             
             Relevant Context:
             ${contextText}
@@ -93,7 +86,7 @@ export class ResponseService {
             const draftBody = llmResponse.content;
 
             // 6. Create Draft via MCP
-            return await this.createDraft(params.sender, `OOO: ${params.subject}`, draftBody, ccRecipients, contextItems);
+            return await this.createDraft(userId, params.sender, `OOO: ${params.subject}`, draftBody, ccRecipients, contextItems);
 
         } catch (error) {
             console.error("[ResponseService] Error generating draft:", error);
@@ -107,26 +100,28 @@ export class ResponseService {
 
                 const fallbackBody = `Hi,\n\nI am currently out of the office. For urgent matters, please contact ${user.managerName} at ${user.managerEmail}.${coveragePlanText}\n\nBest,\nOOO Agent (Fallback Mode)`;
 
-                return await this.createDraft(params.sender, `OOO: ${params.subject}`, fallbackBody, [], []);
+                return await this.createDraft(userId, params.sender, `OOO: ${params.subject}`, fallbackBody, [], []);
             }
 
             throw error; // If no fallback info, rethrow
         }
     }
 
-    private async createDraft(recruit: string, subject: string, body: string, cc: string[], contextItems: any[]): Promise<DraftResponse> {
-        console.log('[ResponseService] Creating draft via Gmail MCP...');
-        const mcpResult = await this.mcp.callTool('gmail_create_draft', {
-            to: recruit,
-            cc: cc.length > 0 ? cc.join(',') : undefined,
-            subject: subject,
-            body: body
-        });
+    private async createDraft(userId: string, recruit: string, subject: string, body: string, cc: string[], contextItems: any[]): Promise<DraftResponse> {
+        console.log('[ResponseService] Processing response via Gmail API (Simulating draft)...');
 
-        const draftData = JSON.parse(mcpResult.content[0].text || '{}');
+        // Use realistic API instead of MCP
+        const gmailClient = new GmailClient(userId);
+
+        try {
+            // For MVP: Instead of draft, we will log it. The actual Gmail API allows creating drafts natively.
+            // await gmailClient.sendResponse(recruit, subject, body); 
+        } catch (e) {
+            console.error("Gmail API Error", e);
+        }
 
         return {
-            id: draftData.id || 'draft-error',
+            id: `draft-${Date.now()}`,
             subject: subject,
             body: body,
             recipient: recruit,

@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { auth } from '@/lib/auth';
 
 export async function GET() {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
+
         const coverageMaps = await prisma.coverageMap.findMany({
+            where: { userId: session.user.id },
             orderBy: { updatedAt: 'desc' },
             include: {
                 user: {
@@ -19,32 +26,19 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
-        const { topic, contactId, userId } = body;
-
-        // For MVP, we might need a default user if not provided, or assume auth.
-        // We'll just require userId for now or find the first user.
-        let targetUserId = userId;
-        if (!targetUserId) {
-            const firstUser = await prisma.user.findFirst();
-            if (firstUser) targetUserId = firstUser.id;
-            else {
-                // Create a dummy user if none exists
-                const newUser = await prisma.user.create({
-                    data: {
-                        email: "demo@example.com",
-                        name: "Demo User"
-                    }
-                });
-                targetUserId = newUser.id;
-            }
+        const session = await auth();
+        if (!session?.user?.id) {
+            return new NextResponse("Unauthorized", { status: 401 });
         }
+
+        const body = await request.json();
+        const { topic, contactId } = body;
 
         const newMap = await prisma.coverageMap.create({
             data: {
                 topic,
                 contactId,
-                userId: targetUserId,
+                userId: session.user.id,
             },
         });
         return NextResponse.json(newMap);

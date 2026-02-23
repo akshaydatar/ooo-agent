@@ -1,5 +1,6 @@
 export interface ContextItem {
     id: string;
+    userId?: string;
     type: 'email' | 'document' | 'calendar_event';
     content: string;
     metadata: Record<string, any>;
@@ -7,6 +8,7 @@ export interface ContextItem {
 }
 
 export interface ContextQuery {
+    userId: string;
     query: string;
     type?: 'email' | 'document';
     limit?: number;

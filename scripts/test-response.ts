@@ -4,6 +4,7 @@ async function main() {
     const service = new ResponseService();
 
     const params = {
+        userId: 'test-user-id',
         id: 'msg_123',
         sender: 'colleague@example.com',
         subject: 'Project Gemini Sync',

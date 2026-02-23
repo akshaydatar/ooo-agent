@@ -1,21 +1,22 @@
 import { prisma } from '@/lib/db';
 import { recursiveCharacterSplit } from '@/lib/chunking';
-import { MCPClient } from '@/lib/mcp/client';
-import { MockMCPClient } from '@/lib/mcp/mock-adapter';
-import { StdioMCPClient } from '@/lib/mcp/stdio-client';
-import { loadMCPConfig } from '@/lib/mcp/config';
-import { SQLiteVectorStore, VectorStore } from '@/lib/vector-store';
+import { DriveClient } from '@/lib/google/drive';
+import { SQLiteVectorStore, SupabaseVectorStore, VectorStore } from '@/lib/vector-store';
 import { ContextItem, ContextQuery, ContextServiceConfig } from './types';
 
 import { MockLLMProvider, GeminiLLMProvider, LLMProvider } from "@/lib/llm";
 
 export class ContextService {
     private vectorStore: VectorStore;
-    private mcp: MCPClient;
     private llm: LLMProvider;
 
     constructor(config?: ContextServiceConfig) {
-        this.vectorStore = new SQLiteVectorStore();
+        if (process.env.SUPABASE_URL) {
+            this.vectorStore = new SupabaseVectorStore();
+        } else {
+            console.warn("No SUPABASE_URL found, falling back to SQLiteVectorStore");
+            this.vectorStore = new SQLiteVectorStore();
+        }
 
         // 1. Setup LLM Provider
         if (process.env.GEMINI_API_KEY) {
@@ -25,24 +26,20 @@ export class ContextService {
             this.llm = new MockLLMProvider();
         }
 
-        // 2. Setup MCP Client
-        const mcpConfig = loadMCPConfig();
-        if (mcpConfig.servers.length > 0) {
-            this.mcp = new StdioMCPClient(mcpConfig.servers[0]);
-            (this.mcp as StdioMCPClient).connect().catch(e => console.error("Failed to connect MCP", e));
-        } else {
-            this.mcp = new MockMCPClient();
-        }
     }
+
     /**
      * Index a new item (email, doc, calendar event) into the vector store and database.
      */
-    async indexItem(item: ContextItem): Promise<void> {
+    async indexItem(item: ContextItem & { userId?: string }): Promise<void> {
         console.log(`[ContextService] Indexing item: ${item.id} (${item.type})`);
+
+        if (!item.userId) throw new Error("userId is required for indexing");
 
         // 1. Store the root item
         const savedItem = await prisma.contextItem.create({
             data: {
+                userId: item.userId,
                 type: item.type,
                 content: item.content,
                 metadata: JSON.stringify(item.metadata),
@@ -120,12 +117,12 @@ export class ContextService {
             }));
         }
 
-        // Fallback: Use MCP to find relevant docs dynamically
-        console.log('[ContextService] DB empty, asking Drive MCP...');
-        const mcpResult = await this.mcp.callTool('drive_list_files', { query: params.query });
+        // Fallback: Use Drive API directly
+        console.log('[ContextService] DB empty, asking Drive API...');
+        const driveClient = new DriveClient(params.userId);
+        const driveFiles = await driveClient.searchDriveFiles(params.query);
 
-        if (mcpResult.content[0].text) {
-            const driveFiles = JSON.parse(mcpResult.content[0].text);
+        if (driveFiles.length > 0) {
             return driveFiles.map((f: any) => {
                 let author = 'Unknown';
                 if (f.name.includes('Gemini')) author = 'Sarah';

@@ -1,0 +1,64 @@
+import { inngest } from "./client";
+import { GmailClient } from "../google/gmail";
+import { DriveClient } from "../google/drive";
+import { ContextService } from "@/modules/context/service";
+import { prisma } from "../db";
+
+export const startContextIndexing = inngest.createFunction(
+    { id: "start-context-indexing" },
+    { event: "ooo.agent/activated" },
+    async ({ event, step }) => {
+        const userId = event.data.userId;
+
+        // 1. Verify user's token and get config
+        const user = await step.run("get-user-config", async () => {
+            return await prisma.user.findUnique({ where: { id: userId } });
+        });
+
+        if (!user || !user.agentEnabled) {
+            return { skipped: true, reason: "Agent not enabled or user not found" };
+        }
+
+        const contextService = new ContextService();
+
+        // 2. Fetch and Index Gmail Threads
+        await step.run("index-gmail-threads", async () => {
+            console.log(`[Inngest] Running index-gmail-threads for user ${userId}`);
+            try {
+                const gmailClient = new GmailClient(userId);
+                const threads = await gmailClient.fetchRecentThreads(25); // Limit for MVP
+
+                let count = 0;
+                for (const thread of threads) {
+                    await contextService.indexItem({ ...thread, userId });
+                    count++;
+                }
+                return { threadsIndexed: count };
+            } catch (error: any) {
+                console.error("[Inngest] Gmail indexing error:", error?.message);
+                throw error; // Let Inngest retry
+            }
+        });
+
+        // 3. Fetch and Index Drive Docs
+        await step.run("index-drive-docs", async () => {
+            console.log(`[Inngest] Running index-drive-docs for user ${userId}`);
+            try {
+                const driveClient = new DriveClient(userId);
+                const docs = await driveClient.fetchRecentDocuments(10); // Limit for MVP
+
+                let count = 0;
+                for (const doc of docs) {
+                    await contextService.indexItem({ ...doc, userId });
+                    count++;
+                }
+                return { docsIndexed: count };
+            } catch (error: any) {
+                console.error("[Inngest] Drive indexing error:", error?.message);
+                throw error; // Let Inngest retry
+            }
+        });
+
+        return { success: true, userId };
+    }
+);

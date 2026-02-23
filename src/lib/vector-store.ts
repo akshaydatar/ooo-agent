@@ -73,3 +73,56 @@ export class SQLiteVectorStore implements VectorStore {
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 }
+
+import { createClient } from '@supabase/supabase-js';
+
+export class SupabaseVectorStore implements VectorStore {
+    private supabase;
+
+    constructor() {
+        const supabaseUrl = process.env.SUPABASE_URL || '';
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+        this.supabase = createClient(supabaseUrl, supabaseKey);
+    }
+
+    async addDocuments(
+        documents: { content: string; metadata: Record<string, any>; embedding: number[] }[]
+    ): Promise<void> {
+        // Direct insertion via Supabase client to the documents table (assuming it's set up)
+        const { error } = await this.supabase.from('documents').insert(
+            documents.map(doc => ({
+                content: doc.content,
+                metadata: doc.metadata,
+                embedding: doc.embedding
+            }))
+        );
+
+        if (error) {
+            console.error('Error inserting documents to Supabase:', error);
+            throw new Error('Failed to insert documents into Supabase Vector Store');
+        }
+    }
+
+    async similaritySearch(
+        queryEmbedding: number[],
+        limit: number = 5
+    ): Promise<{ content: string; score: number; metadata: any }[]> {
+        // Calls a predefined PostgreSQL function `match_documents` in Supabase
+        const { data, error } = await this.supabase.rpc('match_documents', {
+            query_embedding: queryEmbedding,
+            match_threshold: 0.7, // configurable
+            match_count: limit
+        });
+
+        if (error) {
+            console.error('Error querying Supabase Vector Store:', error);
+            return [];
+        }
+
+        return data.map((item: any) => ({
+            content: item.content,
+            score: item.similarity,
+            metadata: item.metadata
+        }));
+    }
+}

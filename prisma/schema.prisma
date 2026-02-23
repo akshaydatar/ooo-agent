@@ -73,6 +73,7 @@ model User {
   coverageMaps  CoverageMap[]
   rules         ResponseRule[]
   activity      ActivityLog[]
+  contextItems  ContextItem[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -123,6 +124,8 @@ model DataPolicy {
 // Context Engine
 model ContextItem {
   id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      String   // email, document, calendar
   content   String
   metadata  String   // JSON string

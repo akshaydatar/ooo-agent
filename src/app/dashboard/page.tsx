@@ -24,16 +24,26 @@ export default function DashboardPage() {
             .catch(err => console.error("Failed to fetch stats", err))
     }, [])
 
-    const handleOOOToggle = (checked: boolean) => {
-        if (checked) {
-            setOOOActive(true)
-            setIsIndexing(true)
-            // Simulate indexing process
-            setTimeout(() => {
-                setIsIndexing(false)
-            }, 15000)
-        } else {
-            setOOOActive(false)
+    const handleOOOToggle = async (checked: boolean) => {
+        setOOOActive(checked)
+        setIsIndexing(checked)
+
+        try {
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ agentEnabled: checked })
+            });
+
+            if (checked) {
+                // Simulate frontend indexing state for UX
+                setTimeout(() => {
+                    setIsIndexing(false)
+                }, 5000)
+            }
+        } catch (e) {
+            console.error("Toggle failed", e)
+            setOOOActive(!checked) // Revert on failure
             setIsIndexing(false)
         }
     }

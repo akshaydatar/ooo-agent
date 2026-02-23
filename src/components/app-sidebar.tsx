@@ -8,6 +8,7 @@ import {
     Users,
     History,
     ShieldAlert,
+    Shield,
     LogOut,
     Menu
 } from "lucide-react"
@@ -42,6 +43,11 @@ const sidebarItems = [
         title: "Settings",
         href: "/dashboard/settings",
         icon: Settings,
+    },
+    {
+        title: "Admin Console",
+        href: "/admin",
+        icon: Shield,
     },
 ]
 

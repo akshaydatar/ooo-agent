@@ -24,27 +24,23 @@ export class MockLLMProvider implements LLMProvider {
         // Simulate latency
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        let responseContent = `
-Subject: Re: ${request.userPrompt.split('\n')[0].substring(0, 50)}...
-
-Hi there,
-
-Thanks for your email. I am currently out of the office with limited access to email.
-`;
+        let responseContent = "";
 
         // Mock behavior: If prompt mentions "context", add placeholder
         if (request.userPrompt.toLowerCase().includes('context')) {
-            responseContent += '\nBased on our internal documentation, here is some context that might help:\n[AI would insert RAG content here]';
+            responseContent += 'Based on our internal documentation, here is some context that might help:\n[AI would insert RAG content here]';
         }
 
         // Mock behavior: If prompt mentions "CC", add CC note
         if (request.userPrompt.includes('you have cc\'d')) {
             const ccMatch = request.userPrompt.match(/you have cc'd (.*?) because/);
             const contact = ccMatch ? ccMatch[1] : 'the contact';
-            responseContent += `\n\nI have cc'd ${contact} because they may be able to answer you directly.`;
+            responseContent += `\n\nI have additionally CC'd ${contact} who can assist further.`;
         }
 
-        responseContent += '\n\nI will get back to you when I return.\n\nBest,\nOOO Agent';
+        if (!responseContent) {
+            responseContent = "I have processed your request and routed this email accordingly.";
+        }
 
         return {
             content: responseContent.trim(),

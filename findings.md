@@ -1,65 +1,62 @@
-# Project Evaluation: OOO Agent
+# Project Evaluation: OOO Agent (Updated)
 
 ## 1. Progress Evaluation Matrix
 
-| Module | Status | Completion % | Current Capabilities |
+| Module | Status | Completion % | Change from Last Review |
 | :--- | :--- | :--- | :--- |
-| **Core Infrastructure** | Stable | 85% | Next.js 14 (App Router), Prisma (Postgres/SQLite), Inngest (Background Jobs), NextAuth (Google). |
-| **Google Workspace** | Functional | 70% | Gmail/Drive clients implemented for reading/writing. Calendar integration missing. |
-| **Context Engine** | Beta | 55% | RAG pipeline with recursive chunking and vector search. SQLite/Supabase support. |
-| **Response Engine** | Functional | 60% | AI-augmented drafting, rule evaluation, basic PII scrubbing (regex). |
-| **Routing Engine** | Basic | 40% | Manual overrides and contributor-based suggestions. No semantic topic clustering. |
-| **User Dashboard** | Functional | 65% | Status toggle, rules editor, coverage map (UI). Date picker/Activity Feed missing. |
-| **Admin Console** | Mocked | 30% | UI exists as a shell. Policy enforcement and audit logging not yet wired to DB. |
+| **Core Infrastructure** | Stable | 90% | Inngest jobs refined with better error handling and scope. |
+| **Google Workspace** | Functional | 90% | **CalendarClient added.** 6-month lookback enforced across all clients. |
+| **Context Engine** | Beta | 60% | Calendar events now indexed. |
+| **Response Engine** | Functional | 85% | **PolicyInterceptor added.** Identity updated to `{user}_OOO_assistant`. Activity logging implemented. |
+| **Routing Engine** | Basic | 50% | Manual overrides and contributor-based suggestions. |
+| **User Dashboard** | Functional | 65% | Core UI exists, but Activity Feed and Date Scheduling are still gaps. |
+| **Admin Console** | Beta | 50% | Policy logic integrated into backend; UI remains partially mocked. |
 
 ---
 
-## 2. Identified Gaps & Missing Requirements
-
-### A. Context & Ingestion (PRD Ref: 4.1)
-*   **[CE-3] Calendar Integration**: No `CalendarClient` or indexing for OOO events/meeting patterns.
-*   **[PR-1] Indexing Scope**: Current Inngest jobs fetch fixed limits (25 items) instead of enforcing the **6-month hard lookback limit**.
-*   **[CE-4] Topic Modeling**: Lacks true LLM-driven topic clustering; currently relies on simple metadata matches.
-
-### B. Response & Security (PRD Ref: 4.2, 4.7)
-*   **[RE-7] Assistant Identity**: Currently uses "Coverage Ninja" sign-off. Must be `{user}_OOO_assistant` and clearly AI-identified.
-*   **[RE-4] PII Redaction**: `PIIScrubber` is regex-only (Phone/SSN). Lacks financial data detection and DLP API integration.
-*   **[PR-3/4] Policy Enforcement**: `ResponseService` ignores `DataPolicy` settings. Meta-policies (Allow/Disallow summaries) are not enforced.
-
-### C. Routing & Logic (PRD Ref: 4.3, 4.5)
-*   **[RE-10/UI-7] Activity Tracking**: No `ActivityLog` entries created upon response/escalation. This breaks the **Activity Feed** and **Return Summary**.
-*   **[RO-3] Fallback Logic**: Manager fallback is hardcoded in the service; should be more robust and configurable via the `User` model.
-*   **[AC-2] Audit Trail**: Immutable logs of agent actions (what was read/shared) are not implemented.
-
-### D. UI/UX (PRD Ref: 4.4)
-*   **[UI-2] OOO Scheduling**: Lacks a date picker for start/end dates; toggle is currently immediate-only.
-*   **[UI-8] Return Summary**: Dashboard activity feed is a placeholder. Needs categorization: **Resolved**, **Pending**, **Escalated**.
-*   **[UI-11/12] Indexing States**: Progress animations and specific indexing status messages are partially implemented but not fully reactive to back-end state.
+## 2. Resolved Findings (from Previous Review)
+*   ✅ **[CE-3] Calendar Integration**: `CalendarClient` implemented and integrated into indexing.
+*   ✅ **[PR-1] Indexing Scope**: 6-month lookback filters added to Gmail, Drive, and Calendar queries.
+*   ✅ **[RE-7] Assistant Identity**: Correct sign-off and AI identification implemented in `ResponseService`.
+*   ✅ **[RE-10/UI-7] Activity Tracking**: `ActivityLog` records now created for all responses and policy blocks.
+*   ✅ **[PR-3/4] Policy Enforcement**: `PolicyInterceptor` now gates response generation based on org policies.
 
 ---
 
-## 3. Technical Debt & Observations
-*   **Vector Search**: `SQLiteVectorStore` performs an in-memory cosine similarity across all chunks (O(n)). This will scale poorly beyond ~1000 chunks.
-*   **Mock Providers**: `MockLLMProvider` is the default in several places. Needs a more robust configuration switch for production `GeminiLLMProvider`.
-*   **Error Handling**: Inngest jobs lack specific retry logic for rate-limited Google APIs (429s).
+## 3. New & Remaining Gaps
+
+### A. UI & Dashboard Integration
+*   **[UI-7/8] Activity Feed Mocked**: `src/app/dashboard/activity/page.tsx` does not yet fetch or display the data from the `ActivityLog` table.
+*   **[UI-2] OOO Scheduling**: Lacks a DateRangePicker for start/end dates. The agent is toggled manually, ignoring `oooStartDate`/`oooEndDate`.
+*   **[UI-11/12] Indexing Status**: The "Indexing" state in the UI is a local timer (`setTimeout`) and not synced with actual Inngest job completion.
+
+### B. Security & Configuration
+*   **Hardcoded Whitelists**: `PolicyInterceptor` uses hardcoded domains for external blocking. This should be dynamic based on the `Organization` domain.
+*   **LLM Factory**: The system lacks a clean way to switch between `MockLLMProvider` and `GeminiLLMProvider` via environment variables (defaults to Mock in code).
+*   **Rate Limiting**: Inngest indexing jobs lack retry logic specifically tuned for Google API 429 (Rate Limit) errors.
+
+### C. Advanced Logic
+*   **[RO-1] Semantic Routing**: `RoutingService` relies on exact string matches. It needs to utilize the Vector Store to match topics semantically when manual maps fail.
+*   **[PR-4] Context User Toggle**: While the UI for the "Include Context Summaries" toggle exists, the `ResponseService` does not yet check this user-level preference before calling the LLM.
 
 ---
 
-## 4. Recommended Execution Plan
+## 4. Technical Debt
+*   **Vector Scaling**: `SQLiteVectorStore` still performs in-memory similarity searches (O(n)).
+*   **Auth Scopes**: Need to verify if the current OAuth scopes include `calendar.events.readonly` and `calendar.settings.readonly`.
 
-1.  **Phase 1: Compliance & Identity**
-    *   Update `ResponseService` identity and sign-off.
-    *   Implement `ActivityLog` creation for every generated response.
-    *   Add 6-month filter to Gmail/Drive indexing queries.
+---
 
-2.  **Phase 2: Context Expansion**
-    *   Build `CalendarClient` and `index-calendar-events` Inngest step.
-    *   Improve `RoutingService` using LLM-based topic classification.
+## 5. Updated Execution Plan
 
-3.  **Phase 3: Admin & Governance**
-    *   Wire Policy UI to Prisma `DataPolicy`.
-    *   Implement `PolicyInterceptor` in the `ResponseService` pipeline.
+1.  **Phase 1: UI Data Binding**
+    *   Create API endpoints for `ActivityLog` and connect them to the Dashboard and Activity Feed pages.
+    *   Implement a `DateRangePicker` on the Dashboard to save OOO periods to the `User` model.
 
-4.  **Phase 4: UX Polishing**
-    *   Add DateRangePicker to Dashboard.
-    *   Build the categorization logic for the Activity Feed (Resolved/Pending/Escalated).
+2.  **Phase 2: Intelligent Routing**
+    *   Enhance `RoutingService.resolveCoverage` to query the Vector Store if a manual match isn't found.
+    *   Dynamic domain whitelisting in `PolicyInterceptor`.
+
+3.  **Phase 3: Refinement & Scale**
+    *   Implement an `LLMProviderFactory` to handle provider selection.
+    *   Add exponential backoff specifically for 429s in Inngest steps.

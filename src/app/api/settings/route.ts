@@ -10,11 +10,17 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { agentEnabled } = body;
+        const { agentEnabled, managerName, managerEmail, oooStartDate, oooEndDate } = body;
+
+        const updateData: any = { agentEnabled };
+        if (managerName !== undefined) updateData.managerName = managerName;
+        if (managerEmail !== undefined) updateData.managerEmail = managerEmail;
+        if (oooStartDate !== undefined) updateData.oooStartDate = oooStartDate ? new Date(oooStartDate) : null;
+        if (oooEndDate !== undefined) updateData.oooEndDate = oooEndDate ? new Date(oooEndDate) : null;
 
         const user = await prisma.user.update({
             where: { id: session.user.id },
-            data: { agentEnabled }
+            data: updateData
         });
 
         // Trigger indexing if enabled

@@ -1,5 +1,6 @@
 import { google, calendar_v3 } from 'googleapis';
 import { GoogleApiClient } from './client';
+import { ContextItem } from '@/modules/context/types';
 
 export class CalendarClient extends GoogleApiClient {
     private calendar: calendar_v3.Calendar;
@@ -60,7 +61,56 @@ export class CalendarClient extends GoogleApiClient {
             summary: e.summary,
             start: e.start?.dateTime || e.start?.date,
             end: e.end?.dateTime || e.end?.date,
-            type: e.eventType // 'default', 'outOfOffice', 'focusTime'
         }));
+    }
+
+    /**
+     * Fetch recent calendar events for context indexing.
+     */
+    async fetchRecentEvents(maxResults: number = 50): Promise<ContextItem[]> {
+        await this.authenticate();
+
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const response = await this.calendar.events.list({
+            calendarId: 'primary',
+            timeMin: sixMonthsAgo.toISOString(),
+            maxResults,
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+
+        const events = response.data.items || [];
+        const contextItems: ContextItem[] = [];
+
+        for (const event of events) {
+            if (!event.id) continue;
+
+            let attendees = new Set<string>();
+            event.attendees?.forEach(a => {
+                if (a.email) attendees.add(a.email);
+            });
+
+            const summary = event.summary || 'No Title';
+            const description = event.description || '';
+            const location = event.location || 'No Location';
+
+            contextItems.push({
+                id: event.id,
+                type: 'calendar_event',
+                content: `Meeting: ${summary}\nLocation: ${location}\nDescription: ${description}`,
+                metadata: {
+                    summary,
+                    organizer: event.organizer?.email || 'Unknown',
+                    attendees: Array.from(attendees),
+                    startTime: event.start?.dateTime || event.start?.date,
+                    endTime: event.end?.dateTime || event.end?.date,
+                },
+                createdAt: new Date()
+            });
+        }
+
+        return contextItems;
     }
 }

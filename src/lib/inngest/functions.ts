@@ -59,6 +59,26 @@ export const startContextIndexing = inngest.createFunction(
             }
         });
 
+        // 4. Fetch and Index Calendar Events
+        await step.run("index-calendar-events", async () => {
+            console.log(`[Inngest] Running index-calendar-events for user ${userId}`);
+            try {
+                const { CalendarClient } = await import("../google/calendar");
+                const calendarClient = new CalendarClient(userId);
+                const events = await calendarClient.fetchRecentEvents(25); // Limit for MVP
+
+                let count = 0;
+                for (const event of events) {
+                    await contextService.indexItem({ ...event, userId });
+                    count++;
+                }
+                return { eventsIndexed: count };
+            } catch (error: any) {
+                console.error("[Inngest] Calendar indexing error:", error?.message);
+                throw error; // Let Inngest retry
+            }
+        });
+
         return { success: true, userId };
     }
 );

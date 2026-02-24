@@ -16,10 +16,11 @@ export class GmailClient extends GoogleApiClient {
     async fetchRecentThreads(maxResults: number = 50): Promise<ContextItem[]> {
         await this.authenticate();
 
+        const sixMonthsAgo = Math.floor(Date.now() / 1000) - (6 * 30 * 24 * 60 * 60);
         const response = await this.gmail.users.threads.list({
             userId: 'me',
             maxResults,
-            q: 'in:inbox OR in:sent', // Fetch recent conversations
+            q: `(in:inbox OR in:sent) after:${sixMonthsAgo}`, // Fetch recent conversations
         });
 
         const threads = response.data.threads || [];
@@ -67,9 +68,6 @@ export class GmailClient extends GoogleApiClient {
         return contextItems;
     }
 
-    /**
-     * Send an email response.
-     */
     async sendResponse(to: string, subject: string, bodyText: string, threadId?: string): Promise<void> {
         await this.authenticate();
 
@@ -95,6 +93,41 @@ export class GmailClient extends GoogleApiClient {
                 threadId: threadId
             }
         });
+    }
+
+    /**
+     * Create a draft email response.
+     */
+    async createDraft(to: string, subject: string, bodyText: string, threadId?: string): Promise<any> {
+        await this.authenticate();
+
+        const rawMessage = [
+            `To: ${to}`,
+            'Content-Type: text/plain; charset="UTF-8"',
+            'MIME-Version: 1.0',
+            `Subject: ${subject.startsWith('Re:') || subject.startsWith('RE:') ? subject : `Re: ${subject}`}`,
+            '',
+            bodyText
+        ].join('\n');
+
+        const encodedMessage = Buffer.from(rawMessage)
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+
+        const res = await this.gmail.users.drafts.create({
+            userId: 'me',
+            requestBody: {
+                message: {
+                    raw: encodedMessage,
+                    threadId: threadId
+                }
+            }
+        });
+
+        console.log(`[GmailClient] Draft created successfully: ${res.data.id}`);
+        return res.data;
     }
 
     /**

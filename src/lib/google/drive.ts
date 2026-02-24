@@ -16,8 +16,12 @@ export class DriveClient extends GoogleApiClient {
     async fetchRecentDocuments(maxResults: number = 20): Promise<ContextItem[]> {
         await this.authenticate();
 
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const dateStr = sixMonthsAgo.toISOString();
+
         const response = await this.drive.files.list({
-            q: "mimeType='application/vnd.google-apps.document' or mimeType='text/plain'", // Only text-based docs for now
+            q: `(mimeType='application/vnd.google-apps.document' or mimeType='text/plain') and modifiedTime > '${dateStr}'`, // Only text-based docs within 6 months
             orderBy: 'modifiedTime desc',
             pageSize: maxResults,
             fields: 'files(id, name, webViewLink, owners, lastModifyingUser)',

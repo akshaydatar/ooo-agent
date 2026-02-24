@@ -62,3 +62,65 @@ export const startContextIndexing = inngest.createFunction(
         return { success: true, userId };
     }
 );
+
+export const pollIncomingEmails = inngest.createFunction(
+    { id: "poll-incoming-emails" },
+    { cron: "*/5 * * * *" }, // Run every 5 minutes
+    async ({ step }) => {
+        // 1. Find all users who have the agent enabled
+        const activeUsers = await step.run("get-active-users", async () => {
+            return await prisma.user.findMany({
+                where: { agentEnabled: true },
+                select: { id: true, email: true }
+            });
+        });
+
+        if (activeUsers.length === 0) {
+            return { skipped: true, reason: "No active users" };
+        }
+
+        const results = [];
+
+        // 2. Poll emails per user
+        for (const user of activeUsers) {
+            const userResult = await step.run(`poll-emails-for-${user.id}`, async () => {
+                const { ResponseService } = await import("@/modules/response/service");
+                const responseService = new ResponseService();
+
+                try {
+                    const gmailClient = new GmailClient(user.id);
+                    const unreadEmails = await gmailClient.getUnreadEmails(10);
+                    let processed = 0;
+
+                    for (const email of unreadEmails) {
+                        try {
+                            // Generate response internally (which creates the draft)
+                            await responseService.generateDraft({
+                                userId: user.id,
+                                id: email.id,
+                                sender: email.sender,
+                                subject: email.subject,
+                                content: email.content,
+                                receivedAt: email.receivedAt
+                            });
+
+                            // Mark as read so we don't process it again next 5 minutes
+                            await gmailClient.markAsRead(email.id);
+                            processed++;
+                        } catch (draftErr) {
+                            console.error(`[Inngest] Error generating draft for email ${email.id}:`, draftErr);
+                        }
+                    }
+
+                    return { userId: user.id, unreadFound: unreadEmails.length, processed };
+                } catch (err: any) {
+                    console.error(`[Inngest] Failed to poll for user ${user.id}:`, err?.message);
+                    return { userId: user.id, error: err?.message };
+                }
+            });
+            results.push(userResult);
+        }
+
+        return { success: true, results };
+    }
+);

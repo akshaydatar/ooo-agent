@@ -19,14 +19,14 @@ export default function LandingPage() {
                         </p>
                     </div>
                     <div className="flex gap-4">
-                        <Link href="/setup">
+                        <Link href="/login">
                             <Button size="lg" className="h-12 px-8 text-base">
-                                Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                                Login
                             </Button>
                         </Link>
-                        <Link href="/dashboard">
+                        <Link href="/login">
                             <Button variant="outline" size="lg" className="h-12 px-8 text-base">
-                                Go to Dashboard
+                                Sign up
                             </Button>
                         </Link>
                     </div>

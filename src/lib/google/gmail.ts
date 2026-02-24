@@ -96,4 +96,84 @@ export class GmailClient extends GoogleApiClient {
             }
         });
     }
+
+    /**
+     * Toggles the native Gmail Vacation Responder (Auto-reply).
+     */
+    async setVacationResponder(enable: boolean, restrictToContacts: boolean = false, restrictToDomain: boolean = false): Promise<void> {
+        await this.authenticate();
+
+        await this.gmail.users.settings.updateVacation({
+            userId: 'me',
+            requestBody: {
+                enableAutoReply: enable,
+                responseSubject: '', // Let our agent handle the actual response, so we clear native subject/body if disabling
+                responseBodyPlainText: '',
+                restrictToContacts,
+                restrictToDomain
+            }
+        });
+        console.log(`[GmailClient] Native Vacation Responder enabled: ${enable}`);
+    }
+
+    /**
+     * Fetch unread emails that haven't been processed yet.
+     */
+    async getUnreadEmails(maxResults: number = 10): Promise<any[]> {
+        await this.authenticate();
+
+        const response = await this.gmail.users.messages.list({
+            userId: 'me',
+            maxResults,
+            q: 'is:unread label:inbox'
+        });
+
+        const messages = response.data.messages || [];
+        const detailedMessages = [];
+
+        for (const msg of messages) {
+            if (!msg.id) continue;
+
+            const msgData = await this.gmail.users.messages.get({
+                userId: 'me',
+                id: msg.id,
+                format: 'full' // Get headers and body
+            });
+
+            let subject = 'No Subject';
+            let from = 'unknown';
+
+            msgData.data.payload?.headers?.forEach(h => {
+                if (h.name === 'Subject') subject = h.value || subject;
+                if (h.name === 'From') from = h.value || from;
+            });
+
+            let content = msgData.data.snippet || '';
+
+            detailedMessages.push({
+                id: msg.id,
+                threadId: msg.threadId,
+                sender: from,
+                subject: subject,
+                content: content,
+                receivedAt: new Date(Number(msgData.data.internalDate))
+            });
+        }
+
+        return detailedMessages;
+    }
+
+    /**
+     * Marks an email as read so it isn't processed twice.
+     */
+    async markAsRead(messageId: string): Promise<void> {
+        await this.authenticate();
+        await this.gmail.users.messages.modify({
+            userId: 'me',
+            id: messageId,
+            requestBody: {
+                removeLabelIds: ['UNREAD']
+            }
+        });
+    }
 }

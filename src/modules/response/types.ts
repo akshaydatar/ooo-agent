@@ -15,7 +15,8 @@ export interface DraftResponse {
     status: 'draft' | 'sent';
     metadata: {
         confidence: number;
-        usedContextIds: string[];
+        usedContextIds?: string[];
+        reason?: string;
     }
 }
 

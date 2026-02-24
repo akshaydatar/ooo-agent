@@ -10,6 +10,7 @@
         "postinstall": "prisma generate"
     },
     "dependencies": {
+        "@auth/prisma-adapter": "^2.11.1",
         "@google/generative-ai": "^0.24.1",
         "@modelcontextprotocol/sdk": "^1.26.0",
         "@prisma/client": "^5.22.0",
@@ -21,9 +22,12 @@
         "@radix-ui/react-separator": "^1.1.8",
         "@radix-ui/react-slot": "^1.0.2",
         "@radix-ui/react-switch": "^1.2.6",
+        "@supabase/supabase-js": "^2.97.0",
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.0",
         "dotenv": "^17.2.4",
+        "googleapis": "^171.4.0",
+        "inngest": "^3.52.3",
         "lucide-react": "^0.344.0",
         "next": "^16.1.6",
         "next-auth": "^5.0.0-beta.30",

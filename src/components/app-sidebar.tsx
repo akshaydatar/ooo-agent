@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import { logOut } from "@/lib/actions"
 
 const sidebarItems = [
     {
@@ -93,10 +94,16 @@ export function AppSidebar({ user }: { user?: { name?: string | null; email?: st
                         <AvatarImage src={user?.image || "/placeholder-avatar.jpg"} alt="User" />
                         <AvatarFallback>{user?.name?.[0] || "U"}</AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium">{user?.name || "Guest User"}</span>
-                        <span className="text-sm text-muted-foreground">{user?.email || "No email"}</span>
+                    <div className="flex flex-col flex-1 overflow-hidden">
+                        <span className="text-sm font-medium truncate">{user?.name || "Guest User"}</span>
+                        <span className="text-sm text-muted-foreground truncate">{user?.email || "No email"}</span>
                     </div>
+                    <form action={logOut}>
+                        <Button variant="ghost" size="icon" title="Log out">
+                            <LogOut className="h-4 w-4" />
+                            <span className="sr-only">Log out</span>
+                        </Button>
+                    </form>
                 </div>
             </div>
         </div>

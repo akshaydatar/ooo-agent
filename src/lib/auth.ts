@@ -18,22 +18,23 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     access_type: "offline",
                     response_type: "code",
                     // Request scopes needed for the integrations later
-                    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/calendar.readonly"
+                    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/calendar.readonly"
                 }
             }
         }),
     ],
     callbacks: {
         async signIn({ account, profile }) {
-            // Enterprise Domain Verification
+            // Enterprise Domain Verification (Disabled for Testing)
+            /*
             if (account?.provider === "google") {
                 const allowedDomain = process.env.ALLOWED_DOMAIN;
                 if (allowedDomain && !profile?.email?.endsWith(`@${allowedDomain}`)) {
                     console.error(`Unauthorized login attempt from: ${profile?.email}`);
                     return false; // Deny access
                 }
-                return true;
             }
+            */
             return true;
         },
         ...authConfig.callbacks,

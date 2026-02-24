@@ -1,15 +1,15 @@
 import type { CoverageRecommendation } from './types';
 import { prisma } from '@/lib/db';
 import { ContextService } from '../context/service';
-import { MockLLMProvider } from '@/lib/llm';
+import { LLMProviderFactory, LLMProvider } from '@/lib/llm';
 
 export class RoutingService {
     private contextService: ContextService;
-    private llm: MockLLMProvider;
+    private llm: LLMProvider;
 
     constructor() {
         this.contextService = new ContextService();
-        this.llm = new MockLLMProvider();
+        this.llm = LLMProviderFactory.getProvider();
     }
 
     /**

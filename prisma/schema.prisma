@@ -58,9 +58,10 @@ model User {
   organization  Organization? @relation(fields: [orgId], references: [id])
   
   // OOO Configuration
-  agentEnabled  Boolean   @default(false)
-  oooStartDate  DateTime?
-  oooEndDate    DateTime?
+  agentEnabled          Boolean   @default(false)
+  oooStartDate          DateTime?
+  oooEndDate            DateTime?
+  allowContextSummaries Boolean   @default(true)
   
   // Fallback & Safety
   managerName       String?

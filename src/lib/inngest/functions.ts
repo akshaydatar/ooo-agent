@@ -1,11 +1,23 @@
 import { inngest } from "./client";
+import { NonRetriableError } from "inngest";
 import { GmailClient } from "../google/gmail";
 import { DriveClient } from "../google/drive";
 import { ContextService } from "@/modules/context/service";
 import { prisma } from "../db";
 
+const enforceRateLimitBackoff = (module: string, error: any) => {
+    console.error(`[Inngest] ${module} error:`, error?.message);
+    const isRateLimit = error?.status === 429 || error?.code === 429 || error?.message?.includes('429') || error?.message?.includes('rate limit') || error?.message?.includes('quota');
+    if (isRateLimit) {
+        // Log that we are relying on Inngest's exponential backoff for this step
+        console.warn(`[Inngest] 429 Rate Limit hit in ${module}. Throwing to trigger exponential backoff retry.`);
+        throw error;
+    }
+    throw new NonRetriableError(`${module} failed without rate limiting. Skipping retries.`, { cause: error });
+};
+
 export const startContextIndexing = inngest.createFunction(
-    { id: "start-context-indexing" },
+    { id: "start-context-indexing", retries: 5 }, // Allow up to 5 retries for backoff
     { event: "ooo.agent/activated" },
     async ({ event, step }) => {
         const userId = event.data.userId;
@@ -35,8 +47,7 @@ export const startContextIndexing = inngest.createFunction(
                 }
                 return { threadsIndexed: count };
             } catch (error: any) {
-                console.error("[Inngest] Gmail indexing error:", error?.message);
-                throw error; // Let Inngest retry
+                enforceRateLimitBackoff("index-gmail-threads", error);
             }
         });
 
@@ -54,8 +65,7 @@ export const startContextIndexing = inngest.createFunction(
                 }
                 return { docsIndexed: count };
             } catch (error: any) {
-                console.error("[Inngest] Drive indexing error:", error?.message);
-                throw error; // Let Inngest retry
+                enforceRateLimitBackoff("index-drive-docs", error);
             }
         });
 
@@ -74,8 +84,7 @@ export const startContextIndexing = inngest.createFunction(
                 }
                 return { eventsIndexed: count };
             } catch (error: any) {
-                console.error("[Inngest] Calendar indexing error:", error?.message);
-                throw error; // Let Inngest retry
+                enforceRateLimitBackoff("index-calendar-events", error);
             }
         });
 
@@ -84,7 +93,7 @@ export const startContextIndexing = inngest.createFunction(
 );
 
 export const pollIncomingEmails = inngest.createFunction(
-    { id: "poll-incoming-emails" },
+    { id: "poll-incoming-emails", retries: 3 },
     { cron: "*/5 * * * *" }, // Run every 5 minutes
     async ({ step }) => {
         // 1. Find all users who have the agent enabled
@@ -134,8 +143,11 @@ export const pollIncomingEmails = inngest.createFunction(
 
                     return { userId: user.id, unreadFound: unreadEmails.length, processed };
                 } catch (err: any) {
-                    console.error(`[Inngest] Failed to poll for user ${user.id}:`, err?.message);
-                    return { userId: user.id, error: err?.message };
+                    try {
+                        enforceRateLimitBackoff(`poll-emails-for-${user.id}`, err);
+                    } catch (handledErr: any) {
+                        return { userId: user.id, error: handledErr?.message || err?.message };
+                    }
                 }
             });
             results.push(userResult);

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -15,6 +16,31 @@ export default function SettingsPage() {
         setMetaPolicyAllowContext,
         setUserAllowContext
     } = useAgentStore()
+
+    useEffect(() => {
+        fetch('/api/settings')
+            .then(res => res.json())
+            .then(data => {
+                if (data.allowContextSummaries !== undefined) {
+                    setUserAllowContext(data.allowContextSummaries);
+                }
+            })
+            .catch(err => console.error("Failed to fetch settings", err))
+    }, []);
+
+    const handleUserContextToggle = async (checked: boolean) => {
+        setUserAllowContext(checked)
+        try {
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ allowContextSummaries: checked })
+            });
+        } catch (e) {
+            console.error("Failed to save setting", e)
+            setUserAllowContext(!checked)
+        }
+    }
 
     return (
         <div className="flex flex-col gap-6">
@@ -94,7 +120,7 @@ export default function SettingsPage() {
                         <Switch
                             id="user-context"
                             checked={userAllowContext}
-                            onCheckedChange={setUserAllowContext}
+                            onCheckedChange={handleUserContextToggle}
                             disabled={!metaPolicyAllowContext}
                         />
                     </div>

@@ -18,7 +18,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     access_type: "offline",
                     response_type: "code",
                     // Request scopes needed for the integrations later
-                    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/calendar.readonly"
+                    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.settings.readonly"
                 }
             }
         }),

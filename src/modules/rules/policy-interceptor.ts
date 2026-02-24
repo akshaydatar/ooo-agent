@@ -25,7 +25,7 @@ export class PolicyInterceptor {
             if (!rules.active) continue;
 
             if (policy.name === 'Block External Domains') {
-                const whitelisted = [user.organization.domain, 'gmail.com', 'example.com']; // Example whitelisted domains
+                const whitelisted = [user.organization.domain]; // Strictly restrict to Org domain
                 for (const email of targetEmails) {
                     const domain = email.split('@')[1]?.toLowerCase();
                     if (domain && !whitelisted.includes(domain)) {

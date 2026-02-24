@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { ContextService } from '../context/service';
-import { MockLLMProvider } from "@/lib/llm";
+import { LLMProviderFactory, LLMProvider } from "@/lib/llm";
 import { GmailClient } from '@/lib/google/gmail';
 import { RulesService } from "@/modules/rules/service";
 import { PolicyInterceptor } from "../rules/policy-interceptor";
@@ -8,7 +8,7 @@ import { RoutingService } from "@/modules/routing/service";
 import { DraftResponse, ResponseGenerationParams } from "./types";
 
 export class ResponseService {
-    private llm = new MockLLMProvider();
+    private llm: LLMProvider = LLMProviderFactory.getProvider();
     private contextService = new ContextService();
     private rulesService = new RulesService();
     private routingService = new RoutingService();
@@ -122,13 +122,16 @@ export class ResponseService {
                     systemInstruction += `\n\nIMPORTANT RULE: ${action.value}`;
                 }
 
+                const relevantContextStr = user?.allowContextSummaries && contextItems.length > 0
+                    ? `Relevant Context:\n${contextItems.map((i: any) => i.content).join('\n')}`
+                    : '';
+
                 const prompt = `
                 Incoming Email from: ${params.sender}
                 Subject: ${params.subject}
                 Content: ${cleanContent}
                 
-                Relevant Context:
-                ${contextItems.map((i: any) => i.content).join('\n')}
+                ${relevantContextStr}
 
                 Please provide a brief AI summary or automated answer to include in the out-of-office reply. 
                 DO NOT INCLUDE any greetings (e.g. "Hi there") or sign-offs (e.g. "Best", "Thanks"). Just provide the core message.

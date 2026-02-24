@@ -4,7 +4,7 @@ import { DriveClient } from '@/lib/google/drive';
 import { SQLiteVectorStore, SupabaseVectorStore, VectorStore } from '@/lib/vector-store';
 import { ContextItem, ContextQuery, ContextServiceConfig } from './types';
 
-import { MockLLMProvider, GeminiLLMProvider, LLMProvider } from "@/lib/llm";
+import { LLMProviderFactory, LLMProvider } from "@/lib/llm";
 
 export class ContextService {
     private vectorStore: VectorStore;
@@ -19,12 +19,7 @@ export class ContextService {
         }
 
         // 1. Setup LLM Provider
-        if (process.env.GEMINI_API_KEY) {
-            this.llm = new GeminiLLMProvider(process.env.GEMINI_API_KEY);
-        } else {
-            console.log("No GEMINI_API_KEY found, falling back to MockLLM");
-            this.llm = new MockLLMProvider();
-        }
+        this.llm = LLMProviderFactory.getProvider();
 
     }
 

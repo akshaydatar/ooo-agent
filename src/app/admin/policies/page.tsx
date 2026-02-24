@@ -1,21 +1,49 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { ShieldAlert, Plus, ShieldCheck } from "lucide-react"
+import { getPolicies, togglePolicy } from "@/app/actions/policies"
 
 export default function PoliciesPage() {
-    // Mock state for MVP
-    const [policies, setPolicies] = useState([
-        { id: '1', name: 'PII Auto-Redaction', active: true, description: 'Automatically redacts Phone Numbers and SSNs from context before sending to LLM.' },
-        { id: '2', name: 'Block External Domains', active: false, description: 'Prevents the OOO Agent from sending automated replies to non-whitelisted external domains.' }
-    ])
+    const [policies, setPolicies] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
-    const togglePolicy = (id: string) => {
-        setPolicies(policies.map(p => p.id === id ? { ...p, active: !p.active } : p))
+    useEffect(() => {
+        loadPolicies()
+    }, [])
+
+    const loadPolicies = async () => {
+        try {
+            const data = await getPolicies()
+            setPolicies(data)
+        } catch (e) {
+            console.error("Failed to load policies", e)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleToggle = async (id: string, currentActive: boolean) => {
+        // Optimistic update
+        setPolicies(policies.map(p => {
+            if (p.id === id) {
+                const rules = JSON.parse(p.rules);
+                rules.active = !currentActive;
+                return { ...p, rules: JSON.stringify(rules) };
+            }
+            return p;
+        }))
+
+        try {
+            await togglePolicy(id, !currentActive)
+        } catch (e) {
+            console.error("Failed to toggle policy", e)
+            loadPolicies() // Revert on failure
+        }
     }
 
     return (
@@ -32,28 +60,33 @@ export default function PoliciesPage() {
             </div>
 
             <div className="grid gap-4">
-                {policies.map(policy => (
-                    <Card key={policy.id} className={policy.active ? "border-blue-200 bg-blue-50/10" : "opacity-80"}>
-                        <CardContent className="p-6 flex items-center justify-between">
-                            <div className="flex items-start gap-4">
-                                <div className={`p-2 rounded-full ${policy.active ? 'bg-blue-100 text-blue-600' : 'bg-muted text-muted-foreground'}`}>
-                                    {policy.active ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+                {loading ? <p className="text-muted-foreground p-4">Loading policies...</p> : policies.map(policy => {
+                    const parsedRules = JSON.parse(policy.rules);
+                    const isActive = parsedRules.active;
+
+                    return (
+                        <Card key={policy.id} className={isActive ? "border-blue-200 bg-blue-50/10" : "opacity-80"}>
+                            <CardContent className="p-6 flex items-center justify-between">
+                                <div className="flex items-start gap-4">
+                                    <div className={`p-2 rounded-full ${isActive ? 'bg-blue-100 text-blue-600' : 'bg-muted text-muted-foreground'}`}>
+                                        {isActive ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                                            {policy.name}
+                                            {isActive && <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">Enforced</Badge>}
+                                        </h3>
+                                        <p className="text-muted-foreground mt-1 text-sm">{parsedRules.description}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                                        {policy.name}
-                                        {policy.active && <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">Enforced</Badge>}
-                                    </h3>
-                                    <p className="text-muted-foreground mt-1 text-sm">{policy.description}</p>
-                                </div>
-                            </div>
-                            <Switch
-                                checked={policy.active}
-                                onCheckedChange={() => togglePolicy(policy.id)}
-                            />
-                        </CardContent>
-                    </Card>
-                ))}
+                                <Switch
+                                    checked={isActive}
+                                    onCheckedChange={() => handleToggle(policy.id, isActive)}
+                                />
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
         </div>
     )

@@ -9,6 +9,8 @@ export async function GET() {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
+        const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+
         const [emailsProcessed, rulesCount, coverageCount] = await Promise.all([
             prisma.activityLog.count({ where: { userId: session.user.id, action: 'EMAIL_RESPONDED' } }),
             prisma.responseRule.count({ where: { userId: session.user.id } }),
@@ -19,6 +21,10 @@ export async function GET() {
             emailsProcessed,
             rulesCount,
             coverageCount,
+            managerName: user?.managerName || '',
+            managerEmail: user?.managerEmail || '',
+            oooStartDate: user?.oooStartDate,
+            oooEndDate: user?.oooEndDate,
             escalations: 0, // Mock for now
             pendingItems: 0 // Mock for now
         });

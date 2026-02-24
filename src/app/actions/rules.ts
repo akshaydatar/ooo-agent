@@ -22,7 +22,23 @@ export async function createRule(data: { name: string, condition: RuleCondition,
 
 export async function getRules() {
     const userId = await getUserId()
-    return await rulesService.getRules(userId)
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const rules = await rulesService.getRules(userId)
+
+    if (user?.managerName && user?.managerEmail) {
+        rules.unshift({
+            id: 'default-manager-fallback',
+            userId: userId,
+            name: 'Default: Manager Fallback',
+            condition: JSON.stringify({ type: 'keyword', value: 'All Emails (Fallback)' }),
+            action: JSON.stringify({ type: 'instructions', value: `Route to ${user.managerName} (${user.managerEmail}) if no coverage map matches.` }),
+            priority: -1,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+        } as any)
+    }
+
+    return rules
 }
 
 export async function deleteRule(id: string) {

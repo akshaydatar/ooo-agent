@@ -21,14 +21,16 @@ export function RulesList({ rules }: { rules: any[] }) {
                         <CardHeader className="pb-2">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-base">{rule.name}</CardTitle>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-destructive"
-                                    onClick={() => deleteRule(rule.id)}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {rule.id !== 'default-manager-fallback' && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive"
+                                        onClick={() => deleteRule(rule.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
                             </div>
                             <CardDescription>
                                 {condition.type} contains "{condition.value}"

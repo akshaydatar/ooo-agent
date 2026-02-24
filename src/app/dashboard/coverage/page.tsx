@@ -30,6 +30,7 @@ interface CoverageItem {
     id: string;
     topic: string;
     contactId: string;
+    contactEmail?: string;
     // userId is not needed for display mostly
 }
 
@@ -43,6 +44,7 @@ export default function CoveragePage() {
     // Form state
     const [newTopic, setNewTopic] = useState("")
     const [newContact, setNewContact] = useState("")
+    const [newContactEmail, setNewContactEmail] = useState("")
 
     useEffect(() => {
         fetchCoverage()
@@ -67,16 +69,35 @@ export default function CoveragePage() {
             const res = await fetch('/api/coverage', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic: newTopic, contactId: newContact })
+                body: JSON.stringify({ topic: newTopic, contactId: newContact, contactEmail: newContactEmail })
             })
             if (res.ok) {
                 setIsDialogOpen(false)
                 setNewTopic("")
                 setNewContact("")
+                setNewContactEmail("")
                 fetchCoverage()
+            } else {
+                const err = await res.json();
+                console.error("API failed:", err);
+                alert(`Failed to save: ${JSON.stringify(err)}`);
             }
         } catch (error) {
             console.error("Failed to create coverage", error)
+            alert("Network error, failed to create coverage.");
+        }
+    }
+
+    const handleDelete = async (id: string) => {
+        try {
+            const res = await fetch(`/api/coverage/${id}`, {
+                method: 'DELETE',
+            })
+            if (res.ok) {
+                fetchCoverage()
+            }
+        } catch (error) {
+            console.error("Failed to delete coverage", error)
         }
     }
 
@@ -121,12 +142,27 @@ export default function CoveragePage() {
                                 <Input id="topic" value={newTopic} onChange={e => setNewTopic(e.target.value)} className="col-span-3" placeholder="Project X" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="contact" className="text-right">Contact</Label>
+                                <Label htmlFor="contact" className="text-right">Contact Name</Label>
                                 <Input id="contact" value={newContact} onChange={e => setNewContact(e.target.value)} className="col-span-3" placeholder="Jane Doe" />
                             </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="contactEmail" className="text-right">Contact Email</Label>
+                                <Input id="contactEmail" type="email" value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="col-span-3" placeholder="jane@example.com" />
+                            </div>
+                            {(!newTopic || !newContact) && (
+                                <p className="text-sm text-red-500 text-right mt-2">Topic and Contact Name are required.</p>
+                            )}
+                            {(newContactEmail.length > 0 && !newContactEmail.includes('@')) && (
+                                <p className="text-sm text-red-500 text-right mt-2">Please enter a valid email address.</p>
+                            )}
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleCreate}>Save</Button>
+                            <Button
+                                onClick={handleCreate}
+                                disabled={!newTopic || !newContact || (newContactEmail.length > 0 && !newContactEmail.includes('@'))}
+                            >
+                                Save
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -148,12 +184,33 @@ export default function CoveragePage() {
                 </Button>
             </div>
 
+            <div className="space-y-3">
+                <h3 className="text-sm font-medium text-muted-foreground">Suggested Topics based on recent emails</h3>
+                <div className="flex flex-wrap gap-2">
+                    {["Project Alpha Delivery", "Q3 Marketing Campaign", "Server Migration"].map(suggestion => (
+                        <Badge
+                            key={suggestion}
+                            variant="secondary"
+                            className="cursor-pointer hover:bg-primary/20 transition-colors"
+                            onClick={() => {
+                                setNewTopic(suggestion);
+                                setIsDialogOpen(true);
+                            }}
+                        >
+                            <Plus className="h-3 w-3 mr-1" />
+                            {suggestion}
+                        </Badge>
+                    ))}
+                </div>
+            </div>
+
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead>Topic / Project</TableHead>
                             <TableHead>Coverage Person</TableHead>
+                            <TableHead>Email</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -179,11 +236,14 @@ export default function CoveragePage() {
                                             <span>{item.contactId}</span>
                                         </div>
                                     </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                        {item.contactEmail || "N/A"}
+                                    </TableCell>
                                     <TableCell>
                                         <Badge variant="outline">Active</Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="sm">Edit</Button>
+                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-600">Delete</Button>
                                     </TableCell>
                                 </TableRow>
                             ))

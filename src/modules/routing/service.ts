@@ -1,12 +1,15 @@
 import type { CoverageRecommendation } from './types';
 import { prisma } from '@/lib/db';
 import { ContextService } from '../context/service';
+import { MockLLMProvider } from '@/lib/llm';
 
 export class RoutingService {
     private contextService: ContextService;
+    private llm: MockLLMProvider;
 
     constructor() {
         this.contextService = new ContextService();
+        this.llm = new MockLLMProvider();
     }
 
     /**
@@ -21,22 +24,39 @@ export class RoutingService {
             where: { userId }
         });
 
-        for (const map of coverageMaps) {
-            // Basic inclusion match for MVP. E.g., topic="Need help with Billing", map.topic="billing"
-            if (topic.toLowerCase().includes(map.topic.toLowerCase())) {
-                const contact = await prisma.user.findUnique({ where: { id: map.contactId } });
-                if (contact) {
-                    console.log(`[RoutingService] 🎯 Manual override matched: ${map.topic} -> ${contact.email}`);
-                    return {
-                        contact: {
-                            id: contact.id,
-                            name: contact.name || 'Unknown',
-                            email: contact.email || '',
-                            role: 'Designated Coverage'
-                        },
-                        confidence: 1.0,
-                        reason: `Topic perfectly matches manual coverage rule for "${map.topic}"`
-                    };
+        if (coverageMaps.length > 0) {
+            const mapTopics = coverageMaps.map(m => m.topic).filter(Boolean);
+            if (mapTopics.length > 0) {
+                const prompt = `Given the incoming email subject or topic: "${topic}", which of the following coverage areas does it best match?
+Coverage Areas: ${mapTopics.join(', ')}
+
+Reply ONLY with the exact name of the best matching coverage area. If it clearly matches none of them, reply strictly with "NONE".`;
+
+                const classification = await this.llm.generate({
+                    systemPrompt: "You are a specialized routing assistant. You must classify the incoming topic strictly into one of the provided Coverage Areas.",
+                    userPrompt: prompt
+                });
+
+                const matchedTopic = classification.content.trim();
+
+                if (matchedTopic && matchedTopic.toUpperCase() !== "NONE") {
+                    const match = coverageMaps.find(m => m.topic.toLowerCase() === matchedTopic.toLowerCase() || matchedTopic.toLowerCase().includes(m.topic.toLowerCase()));
+                    if (match) {
+                        const contact = await prisma.user.findUnique({ where: { id: match.contactId } });
+                        if (contact) {
+                            console.log(`[RoutingService] 🎯 LLM matched coverage: ${match.topic} -> ${contact.email}`);
+                            return {
+                                contact: {
+                                    id: contact.id,
+                                    name: contact.name || 'Unknown',
+                                    email: contact.email || '',
+                                    role: 'Designated Coverage'
+                                },
+                                confidence: 0.9,
+                                reason: `LLM semantic matched topic "${topic}" to coverage rule for "${match.topic}"`
+                            };
+                        }
+                    }
                 }
             }
         }

@@ -5,6 +5,7 @@ import { GmailClient } from '@/lib/google/gmail';
 import { RulesService } from "@/modules/rules/service";
 import { PolicyInterceptor } from "../rules/policy-interceptor";
 import { RoutingService } from "@/modules/routing/service";
+import { TriageService } from "./triage-service";
 import { DraftResponse, ResponseGenerationParams } from "./types";
 
 export class ResponseService {
@@ -21,7 +22,22 @@ export class ResponseService {
      * Generate an email draft response based on the incoming request and retrieved context.
      */
     async generateDraft(params: ResponseGenerationParams): Promise<DraftResponse> {
-        console.log(`[ResponseService] Generating draft for: ${params.sender} on topic "${params.subject}"`);
+        console.log(`[ResponseService] Processing: ${params.sender} - "${params.subject}"`);
+
+        // 0. Triage Layer (Local Analysis - Zero Tokens)
+        const triage = TriageService.analyze(params.sender, params.subject, params.content);
+        if (!triage.actionable) {
+            console.log(`[ResponseService] Triage: Skipping non-actionable email (${triage.reason})`);
+            return {
+                id: `skipped-${Date.now()}`,
+                subject: params.subject,
+                body: "Skipped by triage",
+                recipient: params.sender,
+                cc: [],
+                status: 'skipped',
+                metadata: { confidence: 1.0, reason: triage.reason }
+            };
+        }
 
         // In a real app, we'd get userId from session or params
         const userId = params.userId;

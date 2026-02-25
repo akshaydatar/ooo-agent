@@ -92,6 +92,85 @@ export const startContextIndexing = inngest.createFunction(
     }
 );
 
+export const processNewEmails = inngest.createFunction(
+    { id: "process-new-emails", concurrency: 5 },
+    { event: "gmail/push.received" },
+    async ({ event, step }) => {
+        const { userId } = event.data;
+
+        const result = await step.run("process-latest-emails", async () => {
+            const { ResponseService } = await import("@/modules/response/service");
+            const responseService = new ResponseService();
+            const gmailClient = new GmailClient(userId);
+
+            try {
+                // Fetch unread emails (limit to 5 for fast push processing)
+                const unreadEmails = await gmailClient.getUnreadEmails(5);
+                let processed = 0;
+
+                for (const email of unreadEmails) {
+                    try {
+                        await responseService.generateDraft({
+                            userId,
+                            id: email.id,
+                            sender: email.sender,
+                            subject: email.subject,
+                            content: email.content,
+                            receivedAt: email.receivedAt
+                        });
+                        await gmailClient.markAsRead(email.id);
+                        processed++;
+                    } catch (err) {
+                        console.error(`[Inngest Push] Failed for email ${email.id}:`, err);
+                    }
+                }
+                return { processed };
+            } catch (err: any) {
+                console.error(`[Inngest Push] Failed for user ${userId}:`, err?.message);
+                throw err;
+            }
+        });
+
+        return { success: true, ...result };
+    }
+);
+
+export const setupGmailWatch = inngest.createFunction(
+    { id: "setup-gmail-watch" },
+    { event: "ooo.agent/activated" },
+    async ({ event, step }) => {
+        const { userId } = event.data;
+        const topicName = process.env.GMAIL_PUBSUB_TOPIC;
+
+        if (!topicName) {
+            console.warn("[Inngest] GMAIL_PUBSUB_TOPIC not configured. Skipping watch setup.");
+            return { skipped: true };
+        }
+
+        await step.run("register-watch", async () => {
+            const gmailClient = new GmailClient(userId);
+            return await gmailClient.watch(topicName);
+        });
+
+        return { success: true };
+    }
+);
+
+export const stopGmailWatch = inngest.createFunction(
+    { id: "stop-gmail-watch" },
+    { event: "ooo.agent/deactivated" },
+    async ({ event, step }) => {
+        const { userId } = event.data;
+
+        await step.run("unregister-watch", async () => {
+            const gmailClient = new GmailClient(userId);
+            return await gmailClient.stop();
+        });
+
+        return { success: true };
+    }
+);
+
 export const pollIncomingEmails = inngest.createFunction(
     { id: "poll-incoming-emails", retries: 3 },
     { cron: "*/5 * * * *" }, // Run every 5 minutes

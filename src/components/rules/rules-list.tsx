@@ -1,11 +1,19 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Trash2 } from "lucide-react"
 import { deleteRule } from "@/app/actions/rules"
 
-export function RulesList({ rules }: { rules: any[] }) {
+export function RulesList({ rules }: { rules: Array<{ id: string; name: string; condition: string; action: string }> }) {
+    const router = useRouter()
+
+    const handleDelete = async (id: string) => {
+        await deleteRule(id)
+        router.refresh()
+    }
+
     return (
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">Active Rules</h3>
@@ -26,14 +34,14 @@ export function RulesList({ rules }: { rules: any[] }) {
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8 text-destructive"
-                                        onClick={() => deleteRule(rule.id)}
+                                        onClick={() => handleDelete(rule.id)}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 )}
                             </div>
                             <CardDescription>
-                                {condition.type} contains "{condition.value}"
+                                {condition.type} contains &quot;{condition.value}&quot;
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

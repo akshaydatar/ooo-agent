@@ -1,10 +1,25 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, CheckCircle2, Shield, Zap } from "lucide-react"
+import { CheckCircle2, Shield, Zap } from "lucide-react"
 
 export default function LandingPage() {
     return (
         <div className="flex flex-col min-h-screen">
+            {/* Navbar */}
+            <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="container flex h-14 items-center justify-between">
+                    <div className="flex items-center gap-2 font-bold text-lg text-primary">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <span className="text-primary font-bold">C</span>
+                        </div>
+                        Coverage Ninja
+                    </div>
+                    <Link href="/login">
+                        <Button size="sm">Sign in</Button>
+                    </Link>
+                </div>
+            </header>
+
             {/* Hero Section */}
             <section className="flex-1 flex flex-col items-center justify-center space-y-10 py-24 text-center md:py-32">
                 <div className="container flex flex-col items-center space-y-6">
@@ -13,20 +28,15 @@ export default function LandingPage() {
                             Your Intelligent <br className="hidden sm:inline" />
                             OOO Assistant
                         </h1>
-                        <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400 leading-relaxed">
-                            Don't just auto-reply. <strong>Solve</strong> incoming requests while you're away with
+                        <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl leading-relaxed">
+                            Don't just auto-reply. <strong className="text-foreground">Solve</strong> incoming requests while you're away with
                             context-aware AI that reads your docs, drafts replies, and routes to the right people.
                         </p>
                     </div>
                     <div className="flex gap-4">
                         <Link href="/login">
                             <Button size="lg" className="h-12 px-8 text-base">
-                                Login
-                            </Button>
-                        </Link>
-                        <Link href="/login">
-                            <Button variant="outline" size="lg" className="h-12 px-8 text-base">
-                                Sign up
+                                Get Started
                             </Button>
                         </Link>
                     </div>
@@ -36,29 +46,41 @@ export default function LandingPage() {
             {/* Features Grid */}
             <section className="container py-12 md:py-24 lg:py-32 border-t">
                 <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="flex flex-col space-y-4 p-6 rounded-xl bg-slate-50 dark:bg-slate-900/50">
-                        <Zap className="h-10 w-10 text-blue-600" />
+                    <div className="flex flex-col space-y-4 p-6 rounded-xl bg-muted">
+                        <Zap className="h-10 w-10 text-blue-600 dark:text-blue-400" />
                         <h3 className="text-xl font-bold">Smart Responses</h3>
-                        <p className="text-gray-500 dark:text-gray-400">
+                        <p className="text-muted-foreground">
                             Generates draft replies using your internal documentation and email history context.
                         </p>
                     </div>
-                    <div className="flex flex-col space-y-4 p-6 rounded-xl bg-slate-50 dark:bg-slate-900/50">
-                        <Shield className="h-10 w-10 text-blue-600" />
+                    <div className="flex flex-col space-y-4 p-6 rounded-xl bg-muted">
+                        <Shield className="h-10 w-10 text-blue-600 dark:text-blue-400" />
                         <h3 className="text-xl font-bold">Secure & Private</h3>
-                        <p className="text-gray-500 dark:text-gray-400">
+                        <p className="text-muted-foreground">
                             Redacts PII automatically. Your data never trains public models. Enterprise-grade security.
                         </p>
                     </div>
-                    <div className="flex flex-col space-y-4 p-6 rounded-xl bg-slate-50 dark:bg-slate-900/50">
-                        <CheckCircle2 className="h-10 w-10 text-blue-600" />
+                    <div className="flex flex-col space-y-4 p-6 rounded-xl bg-muted">
+                        <CheckCircle2 className="h-10 w-10 text-blue-600 dark:text-blue-400" />
                         <h3 className="text-xl font-bold">Intelligent Routing</h3>
-                        <p className="text-gray-500 dark:text-gray-400">
+                        <p className="text-muted-foreground">
                             Identifies the right coverage person for every topic, ensuring no heavy lifting falls on one person.
                         </p>
                     </div>
                 </div>
             </section>
+
+            {/* Footer */}
+            <footer className="border-t py-8">
+                <div className="container flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+                    <p className="text-sm text-muted-foreground">
+                        &copy; {new Date().getFullYear()} Coverage Ninja. All rights reserved.
+                    </p>
+                    <div className="flex gap-6 text-sm text-muted-foreground">
+                        <Link href="/login" className="hover:text-foreground transition-colors">Sign in</Link>
+                    </div>
+                </div>
+            </footer>
         </div>
     )
 }

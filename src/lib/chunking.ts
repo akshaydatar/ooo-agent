@@ -15,7 +15,7 @@ export function recursiveCharacterSplit(
     let startIndex = 0;
 
     while (startIndex < text.length) {
-        let endIndex = startIndex + maxChunkSize;
+        const endIndex = startIndex + maxChunkSize;
 
         if (endIndex >= text.length) {
             chunks.push(text.slice(startIndex));

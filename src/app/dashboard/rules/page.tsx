@@ -1,4 +1,4 @@
-import { getRules, deleteRule } from "@/app/actions/rules"
+import { getRules } from "@/app/actions/rules"
 import { RuleEditor } from "@/components/rules/rule-editor"
 import { RulesList } from "@/components/rules/rules-list"
 
@@ -16,10 +16,7 @@ export default async function RulesPage() {
 
             <div className="grid gap-8 md:grid-cols-2">
                 <div>
-                    <RuleEditor onSaved={async () => {
-                        "use server"
-                        // Client refetch handled by router refresh or server action return
-                    }} />
+                    <RuleEditor />
                 </div>
                 <div>
                     <RulesList rules={rules} />

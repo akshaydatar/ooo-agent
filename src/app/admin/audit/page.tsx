@@ -25,7 +25,7 @@ export default function AuditLogsPage() {
                 { id: 'log1', action: 'EMAIL_RESPONDED', user: 'akshay@example.com', target: 'client@external.com', time: '10 mins ago', status: 'success' },
                 { id: 'log2', action: 'PII_REDACTED', user: 'SYSTEM', target: 'Context Engine', time: '15 mins ago', status: 'info' },
                 { id: 'log3', action: 'AGENT_ENABLED', user: 'akshay@example.com', target: 'Self', time: '1 hour ago', status: 'success' },
-                { id: 'log4', action: 'ESCALATION_Triggered', user: 'SYSTEM', target: 'manager@example.com', time: '2 hours ago', status: 'warning' },
+                { id: 'log4', action: 'ESCALATION_TRIGGERED', user: 'SYSTEM', target: 'manager@example.com', time: '2 hours ago', status: 'warning' },
             ])
             setLoading(false)
         }, 500)

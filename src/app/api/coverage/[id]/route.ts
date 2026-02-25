@@ -8,14 +8,27 @@ export async function DELETE(
 ) {
     try {
         const session = await auth();
-        // Skip auth check for test MVP or enforce if session exists
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
         const { id } = await params;
 
+        // Verify ownership before deleting
+        const coverageMap = await prisma.coverageMap.findUnique({
+            where: { id },
+        });
+
+        if (!coverageMap) {
+            return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        }
+
+        if (coverageMap.userId !== session.user.id) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
         await prisma.coverageMap.delete({
-            where: {
-                id,
-            },
+            where: { id },
         });
 
         return NextResponse.json({ success: true });

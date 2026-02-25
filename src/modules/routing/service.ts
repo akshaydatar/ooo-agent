@@ -12,10 +12,6 @@ export class RoutingService {
         this.llm = LLMProviderFactory.getProvider();
     }
 
-    /**
-     * Determine the best coverage person for a given topic.
-     * Checks manual overrides (CoverageMap) first, then falls back to Context inference.
-     */
     async resolveCoverage(userId: string, topic: string): Promise<CoverageRecommendation | null> {
         console.log(`[RoutingService] Resolving coverage for user ${userId} on topic: "${topic}"`);
 
@@ -25,6 +21,18 @@ export class RoutingService {
         });
 
         if (coverageMaps.length > 0) {
+            // 1a. Try Exact/Partial String Match first (Reliable & Fast)
+            const directMatch = coverageMaps.find(m => 
+                topic.toLowerCase() === m.topic.toLowerCase() || 
+                topic.toLowerCase().includes(m.topic.toLowerCase())
+            );
+
+            if (directMatch) {
+                console.log(`[RoutingService] ✅ Direct match found for topic: ${directMatch.topic}`);
+                return await this.buildRecommendation(directMatch, topic);
+            }
+
+            // 1b. Fallback to LLM Semantic Match
             const mapTopics = coverageMaps.map(m => m.topic).filter(Boolean);
             if (mapTopics.length > 0) {
                 const prompt = `Given the incoming email subject or topic: "${topic}", which of the following coverage areas does it best match?
@@ -42,20 +50,8 @@ Reply ONLY with the exact name of the best matching coverage area. If it clearly
                 if (matchedTopic && matchedTopic.toUpperCase() !== "NONE") {
                     const match = coverageMaps.find(m => m.topic.toLowerCase() === matchedTopic.toLowerCase() || matchedTopic.toLowerCase().includes(m.topic.toLowerCase()));
                     if (match) {
-                        const contact = await prisma.user.findUnique({ where: { id: match.contactId } });
-                        if (contact) {
-                            console.log(`[RoutingService] 🎯 LLM matched coverage: ${match.topic} -> ${contact.email}`);
-                            return {
-                                contact: {
-                                    id: contact.id,
-                                    name: contact.name || 'Unknown',
-                                    email: contact.email || '',
-                                    role: 'Designated Coverage'
-                                },
-                                confidence: 0.9,
-                                reason: `LLM semantic matched topic "${topic}" to coverage rule for "${match.topic}"`
-                            };
-                        }
+                        console.log(`[RoutingService] 🎯 LLM matched coverage: ${match.topic}`);
+                        return await this.buildRecommendation(match, topic, true);
                     }
                 }
             }
@@ -101,6 +97,33 @@ Reply ONLY with the exact name of the best matching coverage area. If it clearly
             },
             confidence: maxCount / relevantItems.length,
             reason: `Identified as frequent contributor (${maxCount} items) on topic "${topic}"`
+        };
+    }
+
+    /**
+     * Build a recommendation object from a CoverageMap entry.
+     */
+    private async buildRecommendation(match: any, originalTopic: string, isLLMMatch = false): Promise<CoverageRecommendation | null> {
+        // Try to find a real User if contactId is an ID
+        let contactUser = null;
+        if (match.contactId.length > 20) { // Likely a cuid
+            contactUser = await prisma.user.findUnique({ where: { id: match.contactId } });
+        }
+
+        const name = contactUser?.name || match.contactId;
+        const email = contactUser?.email || match.contactEmail || '';
+
+        return {
+            contact: {
+                id: contactUser?.id || match.contactId,
+                name: name,
+                email: email,
+                role: 'Designated Coverage'
+            },
+            confidence: isLLMMatch ? 0.9 : 1.0,
+            reason: isLLMMatch
+                ? `LLM matched topic "${originalTopic}" to coverage rule for "${match.topic}"`
+                : `Topic "${originalTopic}" matched rule for "${match.topic}"`
         };
     }
 }

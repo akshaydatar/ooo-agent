@@ -62,7 +62,7 @@ export async function POST(request: Request) {
         });
 
         // Trigger indexing if enabled
-        if (body.agentEnabled) {
+        if (body.agentEnabled === true) {
             try {
                 await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/inngest`, {
                     method: 'POST',
@@ -73,6 +73,18 @@ export async function POST(request: Request) {
                 });
             } catch (err) {
                 console.error("Failed to trigger inngest event:", err);
+            }
+        } else if (body.agentEnabled === false) {
+            try {
+                await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/inngest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: 'ooo.agent/deactivated', data: { userId: user.id } })
+                }).catch((err) => {
+                    console.error("Failed to trigger deactivation event:", err);
+                });
+            } catch (err) {
+                console.error("Failed to trigger deactivation event:", err);
             }
         }
 

@@ -209,4 +209,32 @@ export class GmailClient extends GoogleApiClient {
             }
         });
     }
+
+    /**
+     * Set up a watch on the user's inbox to receive push notifications via Pub/Sub.
+     */
+    async watch(topicName: string): Promise<any> {
+        await this.authenticate();
+        const res = await this.gmail.users.watch({
+            userId: 'me',
+            requestBody: {
+                topicName,
+                labelIds: ['INBOX'],
+                labelFilterAction: 'include'
+            }
+        });
+        console.log(`[GmailClient] Watch established. Expiry: ${res.data.expiration}`);
+        return res.data;
+    }
+
+    /**
+     * Stop watching the inbox.
+     */
+    async stop(): Promise<void> {
+        await this.authenticate();
+        await this.gmail.users.stop({
+            userId: 'me'
+        });
+        console.log('[GmailClient] Watch stopped.');
+    }
 }

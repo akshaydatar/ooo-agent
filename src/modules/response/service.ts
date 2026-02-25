@@ -34,7 +34,7 @@ export class ResponseService {
                 body: "Skipped by triage",
                 recipient: params.sender,
                 cc: [],
-                status: 'skipped',
+                status: 'skipped' as any,
                 metadata: { confidence: 1.0, reason: triage.reason }
             };
         }

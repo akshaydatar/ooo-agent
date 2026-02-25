@@ -9,7 +9,7 @@ import { inngest } from '@/lib/inngest/client';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        
+
         // Pub/Sub messages are base64 encoded in the 'data' field
         if (!body.message?.data) {
             return new NextResponse("Invalid Pub/Sub message", { status: 400 });
@@ -35,14 +35,22 @@ export async function POST(request: Request) {
 
         // 2. Trigger Inngest to process the change
         // We use a specific event for push-based processing
-        await inngest.send({
-            name: 'gmail/push.received',
-            data: {
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Development Mode] Mocking inngest.send() for event: gmail/push.received with data:`, {
                 userId: user.id,
                 email: emailAddress,
                 historyId: historyId
-            }
-        });
+            });
+        } else {
+            await inngest.send({
+                name: 'gmail/push.received',
+                data: {
+                    userId: user.id,
+                    email: emailAddress,
+                    historyId: historyId
+                }
+            });
+        }
 
         return new NextResponse("OK", { status: 200 });
     } catch (error) {

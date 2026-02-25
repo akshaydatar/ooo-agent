@@ -37,7 +37,7 @@ export class GmailClient extends GoogleApiClient {
             // Very basic body extraction for MVP context
             let content = '';
             let subject = 'No Subject';
-            let participants = new Set<string>();
+            const participants = new Set<string>();
 
             threadData.data.messages?.forEach(msg => {
                 const headers = msg.payload?.headers;
@@ -181,7 +181,7 @@ export class GmailClient extends GoogleApiClient {
                 if (h.name === 'From') from = h.value || from;
             });
 
-            let content = msgData.data.snippet || '';
+            const content = msgData.data.snippet || '';
 
             detailedMessages.push({
                 id: msg.id,

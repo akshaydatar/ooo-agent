@@ -87,7 +87,7 @@ export class CalendarClient extends GoogleApiClient {
         for (const event of events) {
             if (!event.id) continue;
 
-            let attendees = new Set<string>();
+            const attendees = new Set<string>();
             event.attendees?.forEach(a => {
                 if (a.email) attendees.add(a.email);
             });

@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Shield, Activity, Users } from "lucide-react"
 import Link from "next/link"
 
@@ -40,11 +41,12 @@ export default function AdminPage() {
                     </Card>
                 </Link>
 
-                <Card className="h-full border-l-4 border-l-green-500">
+                <Card className="h-full border-l-4 border-l-green-500 opacity-60">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <Users className="h-5 w-5 text-green-500" />
                             Directory
+                            <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
                         </CardTitle>
                         <CardDescription>
                             Manage users and coverage map overrides org-wide.

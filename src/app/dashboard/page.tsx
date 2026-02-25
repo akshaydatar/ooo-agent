@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowUpRight, Mail, FileText, AlertCircle, Loader2, CalendarIcon } from "lucide-react"
+import { toast } from "sonner"
 import { useAgentStore } from "@/lib/store"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
@@ -55,7 +56,7 @@ export default function DashboardPage() {
 
     const handleOOOToggle = async (checked: boolean) => {
         if (checked && (!date?.from || !date?.to)) {
-            alert("Please select your OOO start and end dates first.");
+            toast.warning("Please select your OOO start and end dates first.");
             return;
         }
         if (checked && (!managerName || !managerEmail)) {
@@ -97,12 +98,12 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                     <p className="text-muted-foreground mt-2">Manage your OOO status and coverage.</p>
                 </div>
-                <div className="flex items-center gap-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
                     <div className="grid gap-2">
                         <Popover>
                             <PopoverTrigger asChild>
@@ -142,7 +143,7 @@ export default function DashboardPage() {
                         </Popover>
                     </div>
 
-                    <div className="flex items-center gap-4 border-l pl-6">
+                    <div className="flex items-center gap-4 sm:border-l sm:pl-6">
                         <span className="text-sm font-medium text-muted-foreground">Status:</span>
                         <div className="flex items-center gap-2">
                             {isIndexing && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
@@ -197,7 +198,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.emailsProcessed}</div>
-                        <p className="text-xs text-muted-foreground">+0% from last month</p>
+                        <p className="text-xs text-muted-foreground">Total processed</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -275,22 +276,15 @@ export default function DashboardPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                                    <span className="text-sm font-medium">Project Alpha</span>
-                                </div>
-                                <span className="text-sm text-muted-foreground">Jane Doe</span>
+                        {stats.coverageCount > 0 ? (
+                            <div className="flex items-center justify-center h-[100px] text-muted-foreground text-sm">
+                                View your full coverage map in the Coverage Map page.
                             </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                                    <span className="text-sm font-medium">Team Ops</span>
-                                </div>
-                                <span className="text-sm text-muted-foreground">John Smith (OOO)</span>
+                        ) : (
+                            <div className="flex items-center justify-center h-[100px] text-muted-foreground text-sm">
+                                No coverage topics configured yet.
                             </div>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

@@ -43,8 +43,11 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <div className="space-y-8">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+                <p className="text-muted-foreground mt-2">Manage your agent's configuration and preferences.</p>
+            </div>
 
             <Card>
                 <CardHeader>
@@ -85,7 +88,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Rule 3: Meta Policy (Admin) */}
-                    <div className="rounded-lg border p-4 bg-slate-50 dark:bg-slate-900">
+                    <div className="rounded-lg border p-4 bg-muted/50">
                         <div className="flex items-center justify-between space-x-2">
                             <div className="space-y-0.5">
                                 <div className="flex items-center gap-2">

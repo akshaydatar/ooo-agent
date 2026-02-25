@@ -10,10 +10,8 @@ export const authConfig = {
             const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
             const isOnAPI = nextUrl.pathname.startsWith('/api/coverage') || nextUrl.pathname.startsWith('/api/stats');
 
-            console.log(`[Middleware] Path: ${nextUrl.pathname}, LoggedIn: ${isLoggedIn}`);
             if (isOnDashboard || isOnAPI) {
                 if (isLoggedIn) return true;
-                console.log('[Middleware] Redirecting to login (Manual)');
                 return Response.redirect(new URL('/login', nextUrl));
             } else if (isLoggedIn && nextUrl.pathname === '/login') {
                 return Response.redirect(new URL('/dashboard', nextUrl));
@@ -28,6 +26,5 @@ export const authConfig = {
         }
     },
     providers: [], // Configured in auth.ts
-    // Note: Hardcoded for MVP as process.env is flaky in Edge Runtime locally
-    secret: 'jEJFiYWhuhfVQIzxH8ZWCqK2IGMALWSkEkRww0rv4Bk=',
+    secret: process.env.AUTH_SECRET,
 } satisfies NextAuthConfig;

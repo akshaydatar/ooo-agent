@@ -98,21 +98,7 @@ export class ContextService {
             } as ContextItem));
         }
 
-        // Fallback or additional check: If vector store plain empty, check DB directly? 
-        // For now, vector store matches what's in DB.
-
-        const items: any[] = []; // Clear old logic variable
-
-        if (items.length > 0) {
-            // Parse metadata string back to object
-            return items.map(item => ({
-                ...item,
-                type: item.type as any,
-                metadata: JSON.parse(item.metadata)
-            }));
-        }
-
-        // Fallback: Use Drive API directly
+        // Fallback: Use Drive API directly if vector store is empty
         console.log('[ContextService] DB empty, asking Drive API...');
         const driveClient = new DriveClient(params.userId);
         const driveFiles = await driveClient.searchDriveFiles(params.query);

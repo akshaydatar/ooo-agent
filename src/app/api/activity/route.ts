@@ -17,7 +17,7 @@ export async function GET() {
 
         const mapped = activities.map(act => {
             let meta: any = {};
-            try { if (act.metadata) meta = JSON.parse(act.metadata); } catch (e) { }
+            try { if (act.metadata) meta = JSON.parse(act.metadata); } catch { /* metadata may not be valid JSON */ }
 
             // Normalize statuses
             let status = 'pending';

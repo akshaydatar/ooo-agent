@@ -9,13 +9,6 @@ import {
     TableHeader,
     TableRow
 } from "@/components/ui/table"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -23,7 +16,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Search, Filter, Plus, UserPlus, Info } from "lucide-react"
+import { Search, Plus, Info } from "lucide-react"
+import { toast } from "sonner"
 import { useAgentStore } from "@/lib/store"
 
 interface CoverageItem {
@@ -80,11 +74,11 @@ export default function CoveragePage() {
             } else {
                 const err = await res.json();
                 console.error("API failed:", err);
-                alert(`Failed to save: ${JSON.stringify(err)}`);
+                toast.error("Failed to save coverage topic. Please try again.");
             }
         } catch (error) {
             console.error("Failed to create coverage", error)
-            alert("Network error, failed to create coverage.");
+            toast.error("Network error. Please check your connection and try again.");
         }
     }
 
@@ -108,10 +102,10 @@ export default function CoveragePage() {
     return (
         <div className="space-y-6">
             {isIndexing && (
-                <Alert className="bg-blue-50 border-blue-200">
-                    <Info className="h-4 w-4 text-blue-500" />
-                    <AlertTitle className="text-blue-700">Indexing in progress...</AlertTitle>
-                    <AlertDescription className="text-blue-600">
+                <Alert className="bg-primary/5 border-primary/20">
+                    <Info className="h-4 w-4 text-primary" />
+                    <AlertTitle className="text-primary">Indexing in progress...</AlertTitle>
+                    <AlertDescription className="text-primary/80">
                         Analyzing your emails and documents. The coverage map will be auto-populated shortly.
                     </AlertDescription>
                 </Alert>
@@ -178,10 +172,6 @@ export default function CoveragePage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button variant="outline">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filter
-                </Button>
             </div>
 
             <div className="space-y-3">
@@ -218,11 +208,11 @@ export default function CoveragePage() {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center h-24">Loading...</TableCell>
+                                <TableCell colSpan={5} className="text-center h-24">Loading...</TableCell>
                             </TableRow>
                         ) : filteredItems.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No topics found. Add one to get started.</TableCell>
+                                <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">No topics found. Add one to get started.</TableCell>
                             </TableRow>
                         ) : (
                             filteredItems.map((item) => (

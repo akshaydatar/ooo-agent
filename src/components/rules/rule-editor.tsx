@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,7 +16,8 @@ import {
 import { createRule } from "@/app/actions/rules" // We will create this next
 import { Loader2 } from "lucide-react"
 
-export function RuleEditor({ onSaved }: { onSaved: () => void }) {
+export function RuleEditor() {
+    const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [name, setName] = useState("")
     const [conditionType, setConditionType] = useState("sender")
@@ -31,7 +33,7 @@ export function RuleEditor({ onSaved }: { onSaved: () => void }) {
                 condition: { type: conditionType as any, value: conditionValue },
                 action: { type: 'instructions', value: instructions }
             })
-            onSaved()
+            router.refresh()
             // Reset form
             setName("")
             setConditionValue("")

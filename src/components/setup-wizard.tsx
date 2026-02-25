@@ -4,9 +4,11 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Check, ChevronRight, Mail, Calendar, MessageSquare, Loader2, HardDrive } from "lucide-react"
+import { toast } from "sonner"
 import { checkMCPConnection } from "@/app/actions/mcp"
 
 export function SetupWizard() {
@@ -53,7 +55,7 @@ export function SetupWizard() {
         if (step < 3) {
             if (step === 2) {
                 if (!preferences.managerName || !preferences.managerEmail) {
-                    alert("Please provide manager details for fallback safety.");
+                    toast.warning("Please provide manager details for fallback safety.");
                     return;
                 }
             }
@@ -76,16 +78,20 @@ export function SetupWizard() {
     return (
         <div className="w-full max-w-lg mx-auto">
             {/* Steps Indicator */}
-            <div className="flex justify-between mb-8">
+            <div className="flex items-center justify-between mb-8">
                 {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 
-              ${step >= i ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-muted"}`}>
-                            {step > i ? <Check className="h-4 w-4" /> : i}
+                    <div key={i} className="flex items-center flex-1 last:flex-none">
+                        <div className="flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 ${step >= i ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-muted"}`}>
+                                {step > i ? <Check className="h-4 w-4" /> : i}
+                            </div>
+                            <span className="text-xs mt-2 text-muted-foreground">
+                                {i === 1 ? "Connect" : i === 2 ? "Preferences" : "Finish"}
+                            </span>
                         </div>
-                        <span className="text-xs mt-2 text-muted-foreground">
-                            {i === 1 ? "Connect" : i === 2 ? "Preferences" : "Finish"}
-                        </span>
+                        {i < 3 && (
+                            <div className={`flex-1 h-0.5 mx-3 mb-5 ${step > i ? "bg-primary" : "bg-muted"}`} />
+                        )}
                     </div>
                 ))}
             </div>
@@ -178,9 +184,8 @@ export function SetupWizard() {
                                 <h4 className="font-medium">Fallback & Safety</h4>
                                 <div className="grid gap-2">
                                     <Label htmlFor="managerName">Manager Name *</Label>
-                                    <input
+                                    <Input
                                         id="managerName"
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="Jane Doe"
                                         value={preferences.managerName}
                                         onChange={(e) => setPreferences(p => ({ ...p, managerName: e.target.value }))}
@@ -188,10 +193,9 @@ export function SetupWizard() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="managerEmail">Manager Email *</Label>
-                                    <input
+                                    <Input
                                         id="managerEmail"
                                         type="email"
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="jane@company.com"
                                         value={preferences.managerEmail}
                                         onChange={(e) => setPreferences(p => ({ ...p, managerEmail: e.target.value }))}
@@ -199,9 +203,8 @@ export function SetupWizard() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="coveragePlan">Coverage Plan Link (Optional)</Label>
-                                    <input
+                                    <Input
                                         id="coveragePlan"
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="https://docs.google.com/..."
                                         value={preferences.coveragePlanLink}
                                         onChange={(e) => setPreferences(p => ({ ...p, coveragePlanLink: e.target.value }))}
@@ -213,7 +216,7 @@ export function SetupWizard() {
 
                     {step === 3 && (
                         <div className="text-center py-6">
-                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Check className="h-8 w-8" />
                             </div>
                             <h3 className="text-lg font-medium mb-2">Setup Complete</h3>

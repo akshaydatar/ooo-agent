@@ -62,9 +62,9 @@ export class ResponseService {
             // 2. Resolve Coverage (Routing)
             const coverage = await this.routingService.resolveCoverage(userId, params.subject);
 
-            let ccRecipients: string[] = [];
+            const ccRecipients: string[] = [];
             let coverageText = "";
-            let baseResponse = "Hi,\n\nI am currently out of the office.";
+            const baseResponse = "Hi,\n\nI am currently out of the office.";
 
             if (coverage) {
                 coverageText = `For matters regarding "${params.subject}", I have copied ${coverage.contact.name} (${coverage.contact.email}) who can assist you.`;
@@ -85,7 +85,7 @@ export class ResponseService {
                 let meta: any = {};
                 try {
                     meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata;
-                } catch (e) { }
+                } catch { /* metadata may not be valid JSON */ }
                 return !!meta?.url || !!meta?.webViewLink || !!meta?.link;
             });
 
@@ -95,7 +95,7 @@ export class ResponseService {
                 const uniqueLinks = [];
                 for (const item of relevantDocs) {
                     let meta: any = {};
-                    try { meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata; } catch (e) { }
+                    try { meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata; } catch { /* metadata may not be valid JSON */ }
                     const url = meta.url || meta.webViewLink || meta.link;
                     const title = meta.title || meta.name || "Document";
                     if (!seenUrls.has(url)) {

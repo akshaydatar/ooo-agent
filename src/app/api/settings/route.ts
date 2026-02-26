@@ -61,30 +61,25 @@ export async function POST(request: Request) {
             data: updateData
         });
 
+        const { GmailClient } = await import('@/lib/google/gmail');
+        const gmailClient = new GmailClient(user.id);
+
         // Trigger indexing if enabled
         if (body.agentEnabled === true) {
             try {
-                await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/inngest`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: 'ooo.agent/activated', data: { userId: user.id } })
-                }).catch((err) => {
-                    console.error("Failed to trigger inngest event:", err);
-                });
+                const topicName = process.env.GMAIL_PUBSUB_TOPIC;
+                if (!topicName) throw new Error("GMAIL_PUBSUB_TOPIC not configured");
+                await gmailClient.watch(topicName);
+                console.log(`[API Settings] Successfully subscribed user ${user.id} to Pub/Sub topic ${topicName}`);
             } catch (err) {
-                console.error("Failed to trigger inngest event:", err);
+                console.error("Failed to establish Gmail push subscription:", err);
             }
         } else if (body.agentEnabled === false) {
             try {
-                await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/inngest`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: 'ooo.agent/deactivated', data: { userId: user.id } })
-                }).catch((err) => {
-                    console.error("Failed to trigger deactivation event:", err);
-                });
+                await gmailClient.stop();
+                console.log(`[API Settings] Successfully stopped push subscriptions for user ${user.id}`);
             } catch (err) {
-                console.error("Failed to trigger deactivation event:", err);
+                console.error("Failed to stop Gmail push subscription:", err);
             }
         }
 

@@ -66,6 +66,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Manually copy ONNX runtime since Next.js standalone tracing drops native edge bindings
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/onnxruntime-node/bin/napi-v3/linux/x64/libonnxruntime.so.1.14.0 ./node_modules/onnxruntime-node/bin/napi-v3/linux/x64/libonnxruntime.so.1.14.0
 
+# Manually copy @google-cloud/tasks because Next.js standalone tracing drops its protos.json
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/@google-cloud/tasks ./node_modules/@google-cloud/tasks
+
 # Add Prisma schema and migrations to the runner image so `npx prisma migrate deploy` can run
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json

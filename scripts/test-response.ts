@@ -20,7 +20,7 @@ async function main() {
     console.log("---------------------------------------------------");
     console.log(`To: ${draft.recipient}`);
     console.log(`Subject: ${draft.subject}`);
-    console.log(`CC: ${draft.cc.join(', ')}`);
+    console.log(`CC: ${draft.cc?.join(', ') || ''}`);
     console.log(`Body:\n${draft.body}`);
     console.log("---------------------------------------------------");
 }

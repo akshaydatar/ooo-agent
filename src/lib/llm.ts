@@ -84,11 +84,14 @@ export class GeminiLLMProvider implements LLMProvider {
     }
 }
 
+/**
+ * Factory to manage LLM provider selection.
+ */
 export class LLMProviderFactory {
     static getProvider(): LLMProvider {
-        const providerName = process.env.LLM_PROVIDER?.toLowerCase() || 'mock';
+        const providerName = process.env.LLM_PROVIDER?.toLowerCase();
 
-        if (providerName === 'gemini') {
+        if (providerName === 'gemini' || process.env.GEMINI_API_KEY) {
             const apiKey = process.env.GEMINI_API_KEY;
             if (!apiKey) {
                 console.warn("[LLMProviderFactory] GEMINI_API_KEY is not set. Falling back to MockLLMProvider.");

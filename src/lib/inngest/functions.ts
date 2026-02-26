@@ -2,7 +2,9 @@ import { inngest } from "./client";
 import { NonRetriableError } from "inngest";
 import { GmailClient } from "../google/gmail";
 import { DriveClient } from "../google/drive";
+import { CalendarClient } from "../google/calendar";
 import { ContextService } from "@/modules/context/service";
+import { ResponseService } from "@/modules/response/service";
 import { prisma } from "../db";
 
 const enforceRateLimitBackoff = (module: string, error: any) => {
@@ -73,7 +75,6 @@ export const startContextIndexing = inngest.createFunction(
         await step.run("index-calendar-events", async () => {
             console.log(`[Inngest] Running index-calendar-events for user ${userId}`);
             try {
-                const { CalendarClient } = await import("../google/calendar");
                 const calendarClient = new CalendarClient(userId);
                 const events = await calendarClient.fetchRecentEvents(25); // Limit for MVP
 
@@ -99,7 +100,6 @@ export const processNewEmails = inngest.createFunction(
         const { userId } = event.data;
 
         const result = await step.run("process-latest-emails", async () => {
-            const { ResponseService } = await import("@/modules/response/service");
             const responseService = new ResponseService();
             const gmailClient = new GmailClient(userId);
 
@@ -192,7 +192,6 @@ export const pollIncomingEmails = inngest.createFunction(
         // 2. Poll emails per user
         for (const user of activeUsers) {
             const userResult = await step.run(`poll-emails-for-${user.id}`, async () => {
-                const { ResponseService } = await import("@/modules/response/service");
                 const responseService = new ResponseService();
 
                 try {

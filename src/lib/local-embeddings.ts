@@ -1,5 +1,4 @@
-import { pipeline } from '@xenova/transformers';
-
+// Dynamic import used to prevent Next.js edge runtime issues with native node bindings
 /**
  * LocalEmbeddingService
  * Uses transformers.js to generate embeddings locally.
@@ -11,6 +10,8 @@ export class LocalEmbeddingService {
     static async getPipeline() {
         if (!this.instance) {
             console.log('[LocalEmbeddings] Loading model: Xenova/all-MiniLM-L6-v2...');
+            // Dynamically import to avoid breaking Next.js standalone tracing
+            const { pipeline } = await import('@xenova/transformers');
             this.instance = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
         }
         return this.instance;

@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { inngest } from '@/lib/inngest/client';
+import { CloudTasksClient } from '@google-cloud/tasks';
+
+const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'ooo-agent-test';
+const queue = process.env.CLOUD_TASKS_QUEUE || 'email-processing-queue';
+const location = process.env.CLOUD_TASKS_LOCATION || 'us-central1';
 
 /**
  * Webhook for Google Cloud Pub/Sub notifications
@@ -9,7 +13,7 @@ import { inngest } from '@/lib/inngest/client';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        
+
         // Pub/Sub messages are base64 encoded in the 'data' field
         if (!body.message?.data) {
             return new NextResponse("Invalid Pub/Sub message", { status: 400 });
@@ -33,16 +37,30 @@ export async function POST(request: Request) {
             return new NextResponse("OK", { status: 200 });
         }
 
-        // 2. Trigger Inngest to process the change
-        // We use a specific event for push-based processing
-        await inngest.send({
-            name: 'gmail/push.received',
-            data: {
-                userId: user.id,
-                email: emailAddress,
-                historyId: historyId
-            }
-        });
+        // 2. Enqueue a Cloud Task to process the change
+        const payload = { userId: user.id, email: emailAddress, historyId: historyId };
+
+        // Target the internal background worker endpoint
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const task = {
+            httpRequest: {
+                httpMethod: 'POST' as const,
+                url: `${baseUrl}/api/tasks/process-email`,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: Buffer.from(JSON.stringify(payload)).toString('base64'),
+            },
+        };
+
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Development Mode] Mocking Cloud Task enqueue for: ${baseUrl}/api/tasks/process-email with data:`, payload);
+        } else {
+            const client = new CloudTasksClient();
+            const parent = client.queuePath(projectId, location, queue);
+            const [response] = await client.createTask({ parent, task });
+            console.log(`[Gmail Webhook] Enqueued Cloud Task: ${response.name}`);
+        }
 
         return new NextResponse("OK", { status: 200 });
     } catch (error) {

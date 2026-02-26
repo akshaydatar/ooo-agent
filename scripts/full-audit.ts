@@ -7,7 +7,7 @@ async function fullSystemAudit() {
     const llm = LLMProviderFactory.getProvider();
 
     const srcDir = path.join(process.cwd(), 'src');
-    
+
     // 1. Collect all critical files
     const getFiles = (dir: string): string[] => {
         let results: string[] = [];
@@ -33,28 +33,27 @@ async function fullSystemAudit() {
     // 3. Perform Batch Audits
     for (const file of allFiles) {
         const content = fs.readFileSync(file, 'utf8');
-        
+
         // We only audit larger files for deep analysis in the full audit
         if (content.length < 100) continue;
 
-        const response = await llm.generate({
-            systemPrompt: `Deep Audit Mode. Rules: ${securityRules}`,
-            userPrompt: `Perform a comprehensive security audit of this file: ${file}
+        try {
+            const response = await llm.generate({
+                systemPrompt: `Deep Audit Mode. Rules: ${securityRules}`,
+                userPrompt: `Perform a comprehensive security audit of this file: ${file}\n\nContent:\n${content}`,
+                tier: 'pro' // Use PRO for full system audits (once a week / before release)
+            });
 
-Content:
-${content}`,
-            tier: 'pro' // Use PRO for full system audits (once a week / before release)
-        });
-
-        if (response.content.includes('RISK') || response.content.includes('ALERT')) {
-            console.log(`
-❌ ISSUE FOUND in ${file}:`);
-            console.log(response.content.trim());
+            if (response.content.includes('RISK') || response.content.includes('ALERT')) {
+                console.log(`\n❌ ISSUE FOUND in ${file}:`);
+                console.log(response.content.trim());
+            }
+        } catch (e) {
+            console.error(`\n⚠️ Error auditing ${file}:`, e);
         }
     }
 
-    console.log('
-✨ Full System Audit Complete.');
+    console.log('\n✨ Full System Audit Complete.');
 }
 
 fullSystemAudit();

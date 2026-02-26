@@ -12,14 +12,12 @@ const watcher = chokidar.watch('src/**/*.ts', {
 });
 
 watcher.on('change', async (filePath) => {
-    console.log(`
-📝 File changed: ${filePath}. Commencing instant audit...`);
+    console.log(`\n📝 File changed: ${filePath}. Commencing instant audit...`);
     
     const content = fs.readFileSync(filePath, 'utf8');
     
-    // Quick triage: Only audit if file is > 10 lines (avoid noise on small edits)
-    if (content.split('
-').length < 5) return;
+    // Quick triage: Only audit if file is > 5 lines (avoid noise on small edits)
+    if (content.split('\n').length < 5) return;
 
     const systemPrompt = "You are the 'Sentinel Real-time Auditor'. " +
         "Audit the provided code for security risks (leaks) and reliability issues. " +
@@ -28,17 +26,12 @@ watcher.on('change', async (filePath) => {
     try {
         const response = await llm.generate({
             systemPrompt,
-            userPrompt: `Code from ${filePath}:
-
-${content}`,
+            userPrompt: `Code from ${filePath}:\n\n${content}`,
             tier: 'flash'
         });
 
         if (response.content.includes('ALERT:')) {
-            console.error(`
-🚨 SENTINEL ALERT in ${filePath}:
-${response.content.trim()}
-`);
+            console.error(`\n🚨 SENTINEL ALERT in ${filePath}:\n${response.content.trim()}\n`);
         } else {
             console.log(`✅ ${filePath} passed background audit.`);
         }

@@ -15,7 +15,7 @@ export default function ActivityLogPage() {
                 <CardContent>
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                         <p>No activity recorded yet.</p>
-                        <p className="text-sm mt-1">Activity will appear here once you activate OOO mode.</p>
+                        <p className="text-sm mt-1">Activity will appear here once you activate Personal Ninja.</p>
                     </div>
                 </CardContent>
             </Card>

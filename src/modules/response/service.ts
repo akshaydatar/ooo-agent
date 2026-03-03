@@ -9,13 +9,14 @@ import { TriageService } from "./triage-service";
 import { DraftResponse, ResponseGenerationParams } from "./types";
 
 export class ResponseService {
-    private llm: LLMProvider = LLMProviderFactory.getProvider();
-    private contextService = new ContextService();
+    private overrides?: { llm?: LLMProvider; contextService?: ContextService };
+    private contextService: ContextService;
     private rulesService = new RulesService();
     private routingService = new RoutingService();
 
-    constructor() {
-        // No setup needed currently
+    constructor(overrides?: { llm?: LLMProvider; contextService?: ContextService }) {
+        this.overrides = overrides;
+        this.contextService = overrides?.contextService || new ContextService();
     }
 
     /**
@@ -42,7 +43,8 @@ export class ResponseService {
         // In a real app, we'd get userId from session or params
         const userId = params.userId;
         const user = await prisma.user.findUnique({ where: { id: userId } });
-        const assistantName = user?.name ? `${user.name.split(' ')[0]}_OOO_assistant` : 'OOO_assistant';
+        const assistantName = user?.name ? `${user.name.split(' ')[0]}'s Personal Ninja` : 'Personal Ninja';
+        const activeLlm = this.overrides?.llm || LLMProviderFactory.getProvider(user?.geminiApiKey || undefined);
 
         try {
             // 1. Enforce Policies & Scrubber
@@ -125,49 +127,50 @@ export class ResponseService {
             }
 
             // Assemble default response
-            let draftBody = `${baseResponse}\n\n${coverageText}`.trim();
-            if (docLinks) {
-                draftBody += `\n\n${docLinks}`;
-            }
+            let draftBody = "";
 
-            // 4. If rule exists, add AI Summary
+            // 4. Always add AI Summary if we are Personal Ninja
+            let systemInstruction = "You are a Personal Assistant ('Personal Ninja'). Create a helpful, direct draft response to the user's email based on the context provided.";
             if (matchedRule) {
-                let systemInstruction = "You are an intelligent OOO Assistant. Create a brief, helpful summary responding to the user's email.";
                 const action = JSON.parse(matchedRule.action);
                 if (action.type === 'instructions') {
                     systemInstruction += `\n\nIMPORTANT RULE: ${action.value}`;
                 }
-
-                const relevantContextStr = user?.allowContextSummaries && contextItems.length > 0
-                    ? `Relevant Context:\n${contextItems.map((i: any) => i.content).join('\n')}`
-                    : '';
-
-                const prompt = `
-                Incoming Email from: ${params.sender}
-                Subject: ${params.subject}
-                Content: ${cleanContent}
-                
-                ${relevantContextStr}
-
-                Please provide a brief AI summary or automated answer to include in the out-of-office reply. 
-                DO NOT INCLUDE any greetings (e.g. "Hi there") or sign-offs (e.g. "Best", "Thanks"). Just provide the core message.
-                Keep it to 1-2 short paragraphs.
-                `;
-
-                const llmResponse = await this.llm.generate({
-                    systemPrompt: systemInstruction,
-                    userPrompt: prompt
-                });
-
-                if (llmResponse.content) {
-                    draftBody += `\n\n---\n*Assistant Note:*\n${llmResponse.content.trim()}`;
-                }
             }
 
-            draftBody += `\n\nBest,\n${assistantName}`;
+            const relevantContextStr = user?.allowContextSummaries && contextItems.length > 0
+                ? `Relevant Context:\n${contextItems.map((i: any) => i.content).join('\n')}`
+                : '';
+
+            const prompt = `
+            Incoming Email from: ${params.sender}
+            Subject: ${params.subject}
+            Content: ${cleanContent}
+            
+            ${relevantContextStr}
+
+            Please provide a draft email response. Do not include signature blocks like "Best, [Name]" unless specified. Just the body.
+            `;
+
+            const llmResponse = await activeLlm.generate({
+                systemPrompt: systemInstruction,
+                userPrompt: prompt
+            });
+
+            if (llmResponse.content) {
+                draftBody += llmResponse.content.trim();
+            }
+
+            if (coverageText) {
+                draftBody += `\n\nNote: ${coverageText}`;
+            }
+
+            if (docLinks) {
+                draftBody += `\n\n${docLinks}`;
+            }
 
             // 5. Create Draft via API
-            return await this.createDraft(userId, params.sender, `OOO: ${params.subject}`, draftBody, ccRecipients, contextItems);
+            return await this.createDraft(userId, params.sender, params.subject, draftBody, ccRecipients, contextItems);
 
         } catch (error) {
             console.error("[ResponseService] Error generating draft:", error);
@@ -175,11 +178,8 @@ export class ResponseService {
             // Fallback Logic
             if (user?.managerName && user?.managerEmail) {
                 console.log("[ResponseService] Using Fallback Configuration");
-                const coveragePlanText = user.coveragePlanLink ? ` You can also view our team's coverage plan here: ${user.coveragePlanLink}` : "";
-
-                const fallbackBody = `Hi,\n\nI am currently out of the office. For urgent matters, please contact ${user.managerName} at ${user.managerEmail}.${coveragePlanText}\n\nBest,\n${assistantName}`;
-
-                return await this.createDraft(userId, params.sender, `OOO: ${params.subject}`, fallbackBody, [], []);
+                const fallbackBody = `Draft failed to generate. Please review and respond manually.`;
+                return await this.createDraft(userId, params.sender, params.subject, fallbackBody, [], []);
             }
 
             throw error; // If no fallback info, rethrow
@@ -187,25 +187,23 @@ export class ResponseService {
     }
 
     private async createDraft(userId: string, recruit: string, subject: string, body: string, cc: string[], contextItems: any[]): Promise<DraftResponse> {
-        console.log('[ResponseService] Executing LIVE email send via Gmail API...');
+        console.log('[ResponseService] Executing LIVE draft creation via Gmail API...');
 
         // Use realistic API instead of MCP
         const gmailClient = new GmailClient(userId);
 
-        // Append CC to body for visibility since we are sending a simple raw text draft right now
-        // In a more complex MIME implementation, cc would go in the To/CC headers
         if (cc.length > 0) {
             body += `\n\nCC: ${cc.join(', ')}`;
         }
 
         try {
-            await gmailClient.sendResponse(recruit, subject, body);
-            console.log(`[ResponseService] Successfully replied to ${recruit} on topic "${subject}"`);
+            await gmailClient.createDraft(recruit, subject, body);
+            console.log(`[ResponseService] Successfully created draft for ${recruit} on topic "${subject}"`);
 
             await prisma.activityLog.create({
                 data: {
                     userId,
-                    action: 'EMAIL_RESPONDED',
+                    action: 'DRAFT_CREATED',
                     metadata: JSON.stringify({
                         target: recruit,
                         subject: subject,
@@ -215,16 +213,16 @@ export class ResponseService {
                 }
             });
         } catch (e) {
-            console.error("Gmail API Error - Fallback to Draft or Error Logging", e);
+            console.error("Gmail API Error - Failed to create draft", e);
         }
 
         return {
-            id: `sent-${Date.now()}`,
+            id: `draft-${Date.now()}`,
             subject: subject,
             body: body,
             recipient: recruit,
             cc: cc,
-            status: 'sent',
+            status: 'draft',
             metadata: {
                 confidence: 0.9,
                 usedContextIds: contextItems.map(c => c.id)

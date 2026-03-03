@@ -22,7 +22,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         className="flex items-center gap-2 text-lg font-semibold md:text-base"
                     >
                         <Package2 className="h-6 w-6" />
-                        <span className="sr-only">OOO Agent</span>
+                        <span className="sr-only">Personal Ninja</span>
                     </Link>
                     <Link
                         href="#"

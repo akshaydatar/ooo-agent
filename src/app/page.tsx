@@ -10,9 +10,9 @@ export default function LandingPage() {
                 <div className="container flex h-14 items-center justify-between">
                     <div className="flex items-center gap-2 font-bold text-lg text-primary">
                         <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <span className="text-primary font-bold">C</span>
+                            <span className="text-primary font-bold">P</span>
                         </div>
-                        Coverage Ninja
+                        Personal Ninja
                     </div>
                     <Link href="/login">
                         <Button size="sm">Sign in</Button>
@@ -26,11 +26,10 @@ export default function LandingPage() {
                     <div className="space-y-4 max-w-3xl">
                         <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
                             Your Intelligent <br className="hidden sm:inline" />
-                            OOO Assistant
+                            Everyday Assistant
                         </h1>
                         <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl leading-relaxed">
-                            Don't just auto-reply. <strong className="text-foreground">Solve</strong> incoming requests while you're away with
-                            context-aware AI that reads your docs, drafts replies, and routes to the right people.
+                            Stop writing boilerplate emails. <strong className="text-foreground">Personal Ninja</strong> drafts highly contextual replies directly in your inbox, using your own documents and email history.
                         </p>
                     </div>
                     <div className="flex gap-4">
@@ -48,23 +47,23 @@ export default function LandingPage() {
                 <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="flex flex-col space-y-4 p-6 rounded-xl bg-muted">
                         <Zap className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-                        <h3 className="text-xl font-bold">Smart Responses</h3>
+                        <h3 className="text-xl font-bold">Context-Aware Drafts</h3>
                         <p className="text-muted-foreground">
-                            Generates draft replies using your internal documentation and email history context.
+                            Automatically creates drafts for incoming emails using your internal documentation and email history context.
                         </p>
                     </div>
                     <div className="flex flex-col space-y-4 p-6 rounded-xl bg-muted">
                         <Shield className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-                        <h3 className="text-xl font-bold">Secure & Private</h3>
+                        <h3 className="text-xl font-bold">Bring Your Own Key</h3>
                         <p className="text-muted-foreground">
-                            Redacts PII automatically. Your data never trains public models. Enterprise-grade security.
+                            Use your own Gemini API key. Your data never trains public models. Enterprise-grade security.
                         </p>
                     </div>
                     <div className="flex flex-col space-y-4 p-6 rounded-xl bg-muted">
                         <CheckCircle2 className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-                        <h3 className="text-xl font-bold">Intelligent Routing</h3>
+                        <h3 className="text-xl font-bold">Smart Triage</h3>
                         <p className="text-muted-foreground">
-                            Identifies the right coverage person for every topic, ensuring no heavy lifting falls on one person.
+                            Filters out newsletters and spam locally. Only generates drafts for actionable, human-sent emails.
                         </p>
                     </div>
                 </div>
@@ -74,7 +73,7 @@ export default function LandingPage() {
             <footer className="border-t py-8">
                 <div className="container flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
                     <p className="text-sm text-muted-foreground">
-                        &copy; {new Date().getFullYear()} Coverage Ninja. All rights reserved.
+                        &copy; {new Date().getFullYear()} Personal Ninja. All rights reserved.
                     </p>
                     <div className="flex gap-6 text-sm text-muted-foreground">
                         <Link href="/login" className="hover:text-foreground transition-colors">Sign in</Link>

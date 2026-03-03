@@ -12,14 +12,14 @@ async function main() {
               id bigserial primary key,
               content text,
               metadata jsonb,
-              embedding vector(768)
+              embedding vector(384)
             );
         `);
 
         // Create the search function
         await prisma.$executeRawUnsafe(`
             CREATE OR REPLACE FUNCTION match_documents (
-              query_embedding vector(768),
+              query_embedding vector(384),
               match_threshold float,
               match_count int
             )

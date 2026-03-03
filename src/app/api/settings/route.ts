@@ -18,7 +18,8 @@ export async function GET() {
                 managerEmail: true,
                 oooStartDate: true,
                 oooEndDate: true,
-                allowContextSummaries: true
+                allowContextSummaries: true,
+                geminiApiKey: true
             }
         });
 
@@ -36,6 +37,7 @@ const updateSettingsSchema = z.object({
     oooStartDate: z.string().datetime().nullable().optional(),
     oooEndDate: z.string().datetime().nullable().optional(),
     allowContextSummaries: z.boolean().optional(),
+    geminiApiKey: z.string().optional().or(z.literal('')),
 }).strict();
 
 export async function POST(request: Request) {
@@ -55,6 +57,7 @@ export async function POST(request: Request) {
         if (body.oooStartDate !== undefined) updateData.oooStartDate = body.oooStartDate ? new Date(body.oooStartDate) : null;
         if (body.oooEndDate !== undefined) updateData.oooEndDate = body.oooEndDate ? new Date(body.oooEndDate) : null;
         if (body.allowContextSummaries !== undefined) updateData.allowContextSummaries = body.allowContextSummaries;
+        if (body.geminiApiKey !== undefined) updateData.geminiApiKey = body.geminiApiKey;
 
         const user = await prisma.user.update({
             where: { id: session.user.id },

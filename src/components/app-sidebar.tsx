@@ -64,9 +64,9 @@ function SidebarContent({ user, pathname, onNavigate }: {
             <div className="p-6">
                 <div className="flex items-center gap-2 font-bold text-xl text-primary">
                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <span className="text-primary font-bold">C</span>
+                        <span className="text-primary font-bold">P</span>
                     </div>
-                    Coverage Ninja
+                    Personal Ninja
                 </div>
             </div>
 
@@ -142,9 +142,9 @@ export function AppSidebar({ user }: { user?: { name?: string | null; email?: st
                 </Sheet>
                 <div className="flex items-center gap-2 font-bold text-lg text-primary">
                     <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <span className="text-primary text-sm font-bold">C</span>
+                        <span className="text-primary text-sm font-bold">P</span>
                     </div>
-                    Coverage Ninja
+                    Personal Ninja
                 </div>
             </div>
 

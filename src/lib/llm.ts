@@ -88,18 +88,34 @@ export class GeminiLLMProvider implements LLMProvider {
  * Factory to manage LLM provider selection.
  */
 export class LLMProviderFactory {
-    static getProvider(): LLMProvider {
-        const providerName = process.env.LLM_PROVIDER?.toLowerCase();
+    static getProvider(userApiKey?: string): LLMProvider {
+        const override = process.env.OVERRIDE_LLM?.toLowerCase();
 
-        if (providerName === 'gemini' || process.env.GEMINI_API_KEY) {
-            const apiKey = process.env.GEMINI_API_KEY;
+        // Always allow mock override if explicitly requested
+        if (override === 'mock') {
+            console.log("[LLMProviderFactory] Using MockLLMProvider due to OVERRIDE_LLM=mock");
+            return new MockLLMProvider();
+        }
+
+        const isTestOrDev = process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development';
+        const providerName = process.env.LLM_PROVIDER?.toLowerCase();
+        const apiKey = userApiKey || process.env.GEMINI_API_KEY;
+
+        if (providerName === 'gemini' || apiKey) {
             if (!apiKey) {
-                console.warn("[LLMProviderFactory] GEMINI_API_KEY is not set. Falling back to MockLLMProvider.");
-                return new MockLLMProvider();
+                if (isTestOrDev) {
+                    console.warn("[LLMProviderFactory] GEMINI_API_KEY is not set. Falling back to MockLLMProvider in development.");
+                    return new MockLLMProvider();
+                }
+                throw new Error("GEMINI_API_KEY is required in production.");
             }
             return new GeminiLLMProvider(apiKey);
         }
 
-        return new MockLLMProvider();
+        if (isTestOrDev) {
+            return new MockLLMProvider();
+        }
+
+        throw new Error("No LLM Provider configured for production.");
     }
 }

@@ -10,17 +10,24 @@ export class ContextService {
     private vectorStore: VectorStore;
     private llm: LLMProvider;
 
-    constructor(config?: ContextServiceConfig) {
-        if (process.env.SUPABASE_URL) {
+    constructor(config?: ContextServiceConfig, overrides?: { vectorStore?: VectorStore; llm?: LLMProvider }) {
+        if (overrides?.vectorStore) {
+            this.vectorStore = overrides.vectorStore;
+        } else if (process.env.OVERRIDE_VECTOR_STORE === 'sqlite') {
+            console.log("[ContextService] Forcing SQLiteVectorStore via OVERRIDE_VECTOR_STORE");
+            this.vectorStore = new SQLiteVectorStore();
+        } else if (process.env.SUPABASE_URL) {
             this.vectorStore = new SupabaseVectorStore();
         } else {
             console.warn("No SUPABASE_URL found, falling back to SQLiteVectorStore");
             this.vectorStore = new SQLiteVectorStore();
         }
 
-        // 1. Setup LLM Provider
-        this.llm = LLMProviderFactory.getProvider();
-
+        if (overrides?.llm) {
+            this.llm = overrides.llm;
+        } else {
+            this.llm = LLMProviderFactory.getProvider();
+        }
     }
 
     /**

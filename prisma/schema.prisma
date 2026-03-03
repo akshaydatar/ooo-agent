@@ -62,6 +62,7 @@ model User {
   oooStartDate          DateTime?
   oooEndDate            DateTime?
   allowContextSummaries Boolean   @default(true)
+  geminiApiKey          String?
   
   // Fallback & Safety
   managerName       String?

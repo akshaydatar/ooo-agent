@@ -1,15 +1,18 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { useAgentStore } from "@/lib/store"
 import { POLICIES, RULES_DESCRIPTION } from "@/lib/policies"
 
 export default function SettingsPage() {
+    const [geminiApiKey, setGeminiApiKey] = useState("")
+    const [isSaving, setIsSaving] = useState(false)
     const {
         metaPolicyAllowContext,
         userAllowContext,
@@ -23,6 +26,9 @@ export default function SettingsPage() {
             .then(data => {
                 if (data.allowContextSummaries !== undefined) {
                     setUserAllowContext(data.allowContextSummaries);
+                }
+                if (data.geminiApiKey) {
+                    setGeminiApiKey(data.geminiApiKey);
                 }
             })
             .catch(err => console.error("Failed to fetch settings", err))
@@ -42,12 +48,52 @@ export default function SettingsPage() {
         }
     }
 
+    const saveGeminiKey = async () => {
+        setIsSaving(true)
+        try {
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ geminiApiKey })
+            });
+        } catch (e) {
+            console.error("Failed to save Gemini API Key", e)
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
     return (
         <div className="space-y-8">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
                 <p className="text-muted-foreground mt-2">Manage your agent's configuration and preferences.</p>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>AI Provider Settings</CardTitle>
+                    <CardDescription>Bring your own Gemini API key for draft generation.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="gemini-key">Gemini API Key</Label>
+                        <div className="flex gap-2">
+                            <Input 
+                                id="gemini-key" 
+                                type="password" 
+                                value={geminiApiKey}
+                                onChange={(e) => setGeminiApiKey(e.target.value)}
+                                placeholder="AIzaSy..." 
+                            />
+                            <Button onClick={saveGeminiKey} disabled={isSaving}>
+                                {isSaving ? "Saving..." : "Save Key"}
+                            </Button>
+                        </div>
+                        <p className="text-sm text-muted-foreground">Your key is stored securely and used exclusively for your draft generation.</p>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>

@@ -1,12 +1,12 @@
-# OOO Agent - Detailed Design Document (Slim Architecture)
+# Personal Ninja - Detailed Design Document
 
 ## 1. Overview
-The OOO Agent ("Coverage Ninja") architecture has been streamlined from its original design to optimize for cost, performance, and real-time responsiveness. This document outlines the core technical components and highlights deviations from the original Product Requirements Document (PRD).
+The "Personal Ninja" architecture is an evolution of the previous OOO Agent. It has been streamlined to optimize for real-time responsiveness, personal context mapping, and cost efficiency. The system operates as a continuous assistant rather than an out-of-office auto-responder, generating highly contextual drafts for incoming emails and staging them in the user's Gmail Drafts folder.
 
 ## 2. Core Architecture Components
 
 ### 2.1 Serverless & Event-Driven Engine
-- **Push vs. Polling**: Instead of periodic polling intervals, the agent relies on a Pub/Sub webhook mechanism combined with Inngest push-based processing. This enables real-time, on-demand execution for incoming communications without wasting compute cycles on empty inboxes.
+- **Push vs. Polling**: The agent relies on a Pub/Sub webhook mechanism combined with Google Cloud Tasks. This enables real-time, on-demand execution for incoming emails.
 
 ### 2.2 Triage Layer (`TriageService`)
 - **Purpose**: A pre-processing layer that filters out non-actionable emails (e.g., newsletters, automated alerts, marketing emails) locally.
@@ -14,25 +14,26 @@ The OOO Agent ("Coverage Ninja") architecture has been streamlined from its orig
 
 ### 2.3 Context & Retrieval (Local RAG)
 - **Zero-Cost Embeddings**: Integrated `@xenova/transformers` to generate embeddings locally within the Node.js process.
-- **Microservice Offloading**: The architecture supports offloading embedding generation to a dedicated Cloud Run microservice if local processing becomes a bottleneck.
-- **Vector Store**: A lightweight vector store is used for local similarity execution, enabling semantic search over the user's historical context.
+- **Vector Store**: A lightweight vector store is used for local similarity execution, enabling semantic search over the user's historical context (Drive docs, recent emails).
+- **Daily Context Sync**: A cron job triggers Cloud Tasks to fetch and embed recent context data.
 
-### 2.4 Multi-Tier LLM Strategy
-- **Provider Factory**: The `LLMProviderFactory` dynamically manages LLM routing based on the task urgency and complexity.
-- **Default Model**: Gemini 1.5 Flash is set as the default model, reducing generation costs by ~90% while maintaining robust reasoning capabilities for drafting responses and topic classification.
+### 2.4 User-Supplied LLM Strategy
+- **Bring Your Own Key**: The system requires the user to supply their own Gemini API Key (`gemini-1.5-flash` or `gemini-1.5-pro`). This key is encrypted and stored in the database.
+- **Provider Factory**: The `LLMProviderFactory` dynamically injects the user's API key when instantiating the LLM client.
 
-### 2.5 Enhanced Routing & Response
-- **Routing**: `RoutingService` is improved to use both direct mapping and semantic topic matching to accurately identify the best coverage person.
-- **Response**: `ResponseService` encompasses policy-compliant response generation, utilizing the `TriageService` and acting strictly under the `{user}_OOO_assistant` identity.
+### 2.5 Response Generation
+- **Drafting, Not Sending**: The `ResponseService` does not auto-reply. Instead, it generates a draft using the context and the user's LLM, and inserts it directly into the Gmail thread as a Draft for the user to review.
 
 ### 2.6 Comprehensive Activity Logging
-- **Database Integration**: Every agent action, policy interception, email read, and response generated is synchronously recorded in the database. This acts as the source of truth for the user's return summary and administrative audit logs.
+- **Database Integration**: Every agent action, policy interception, email read, and draft generated is synchronously recorded in the PostgreSQL (Cloud SQL) database.
 
-## 3. Deviations from PRD (The "Diff")
+## 3. Technology Stack
 
-| Feature / Area | PRD Requirement | Current Slim Architecture | Rationale |
-| :--- | :--- | :--- | :--- |
-| **Email Ingestion** | Polling/periodic syncing implied (CE-1) | **Push-based** via Pub/Sub & Inngest | Real-time responsiveness; zero wasted compute on idle monitoring. |
-| **Response Filtering** | AI analyzes all incoming emails (RE-1) | **TriageService** filters locally | Huge LLM cost savings by ignoring newsletters and automated spam. |
-| **Embeddings Generation**| Gemini Embedding API | **Local Embeddings** (`@xenova/transformers`) | Zero-cost indexing; completely private data processing. |
-| **LLM Model Strategy** | Default Gemini Pro assumed | **Gemini 1.5 Flash** via Factory | 90% cost reduction; sufficient for text classification and proxy replies. |
+- **Framework**: Next.js 15 (App Router)
+- **Runtime**: Node.js 18+
+- **AI/LLM**: Google Gemini 1.5 (via user's API key)
+- **Embeddings**: Local `@xenova/transformers`
+- **Database**: PostgreSQL (Cloud SQL) with Prisma ORM
+- **Processing**: Google Cloud Tasks & Google Pub/Sub
+- **Deployment**: Dockerized (Next.js standalone tracing), Google Cloud Run
+- **Styling**: Tailwind CSS + Shadcn UI

@@ -46,32 +46,33 @@ describe('Response Rules Engine', () => {
 
     beforeEach(async () => {
         vi.clearAllMocks();
-        process.env.NODE_ENV = 'test';
-        process.env.OVERRIDE_VECTOR_STORE = 'sqlite';
-        
+        vi.stubEnv('NODE_ENV', 'test');
+        vi.stubEnv('OVERRIDE_VECTOR_STORE', 'sqlite');
+
         const mockLLM = new MockLLMProvider();
         const sqliteStore = new SQLiteVectorStore();
-        
-        contextService = new ContextService(undefined, { 
-            vectorStore: sqliteStore, 
-            llm: mockLLM 
+
+        contextService = new ContextService(undefined, {
+            vectorStore: sqliteStore,
+            llm: mockLLM
         });
-        
-        responseService = new ResponseService({ 
-            llm: mockLLM, 
-            contextService: contextService 
+
+        responseService = new ResponseService({
+            llm: mockLLM,
+            contextService: contextService
         });
-        
+
         rulesService = new RulesService();
 
         // Clean DB for this user
         await prisma.responseRule.deleteMany({ where: { userId } });
+        await prisma.user.deleteMany({ where: { email: 'rules-engine@example.com' } });
         await prisma.user.upsert({
             where: { id: userId },
             update: { agentEnabled: true },
             create: {
                 id: userId,
-                email: 'test@example.com',
+                email: 'rules-engine@example.com',
                 agentEnabled: true,
                 allowContextSummaries: true
             }

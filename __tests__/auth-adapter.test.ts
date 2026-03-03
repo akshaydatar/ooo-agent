@@ -8,17 +8,15 @@ const adapter = PrismaAdapter(prisma);
 describe('PostgreSQL Prisma Adapter Integration', () => {
 
     beforeAll(async () => {
-        // Clear any users and dependent records before we test
-        await prisma.contextChunk.deleteMany({});
-        await prisma.contextItem.deleteMany({});
-        await prisma.responseRule.deleteMany({});
-        await prisma.activityLog.deleteMany({});
-        await prisma.coverageMap.deleteMany({});
-        await prisma.account.deleteMany({});
-        await prisma.session.deleteMany({});
-        await prisma.user.deleteMany({});
-        await prisma.organization.deleteMany({});
-        await prisma.dataPolicy.deleteMany({});
+        // Clear any users and dependent records related to this specific test to avoid race conditions with other parallel tests
+        await prisma.activityLog.deleteMany({ where: { user: { email: 'test@example.com' } } });
+        await prisma.coverageMap.deleteMany({ where: { user: { email: 'test@example.com' } } });
+        await prisma.responseRule.deleteMany({ where: { user: { email: 'test@example.com' } } });
+        await prisma.contextChunk.deleteMany({ where: { contextItem: { user: { email: 'test@example.com' } } } });
+        await prisma.contextItem.deleteMany({ where: { user: { email: 'test@example.com' } } });
+        await prisma.account.deleteMany({ where: { user: { email: 'test@example.com' } } });
+        await prisma.session.deleteMany({ where: { user: { email: 'test@example.com' } } });
+        await prisma.user.deleteMany({ where: { email: 'test@example.com' } });
     });
 
     afterAll(async () => {
@@ -57,7 +55,7 @@ describe('PostgreSQL Prisma Adapter Integration', () => {
 
         const testAccount = {
             userId: testUser!.id,
-            type: 'oauth',
+            type: 'oauth' as const,
             provider: 'google',
             providerAccountId: 'google-123456789',
             access_token: 'dummy-token',

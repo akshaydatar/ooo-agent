@@ -1,13 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '@/app/api/webhooks/gmail/route';
-import { inngest } from '@/lib/inngest/client';
 import { prisma } from '@/lib/db';
 
+const createTaskMock = vi.fn().mockResolvedValue([{ name: 'mock-task-name' }]);
+const queuePathMock = vi.fn().mockReturnValue('mock-queue-path');
+
 // Mock the dependencies
-vi.mock('@/lib/inngest/client', () => ({
-    inngest: {
-        send: vi.fn(),
-    }
+vi.mock('@google-cloud/tasks', () => ({
+    CloudTasksClient: vi.fn().mockImplementation(function () {
+        return {
+            createTask: createTaskMock,
+            queuePath: queuePathMock,
+        };
+    }),
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -52,10 +57,10 @@ describe('Gmail Pub/Sub Webhook Route', () => {
 
         expect(res.status).toBe(200);
         expect(await res.text()).toBe('OK');
-        expect(inngest.send).not.toHaveBeenCalled();
+        expect(createTaskMock).not.toHaveBeenCalled();
     });
 
-    it('should trigger inngest if user exists and agent is enabled', async () => {
+    it('should enqueue a Cloud Task if user exists and agent is enabled', async () => {
         // Mock finding an active user
         vi.mocked(prisma.user.findUnique).mockResolvedValue({
             id: 'valid-user-id',
@@ -67,7 +72,12 @@ describe('Gmail Pub/Sub Webhook Route', () => {
             message: { data: Buffer.from(JSON.stringify(payload)).toString('base64') }
         });
 
+        // Set NODE_ENV to production temporarily to ensure CloudTasksClient is used instead of dev mock bypass
+        vi.stubEnv('NODE_ENV', 'production');
+
         const res = await POST(req);
+
+        vi.unstubAllEnvs();
 
         expect(res.status).toBe(200);
         expect(prisma.user.findUnique).toHaveBeenCalledWith({
@@ -75,13 +85,18 @@ describe('Gmail Pub/Sub Webhook Route', () => {
             select: { id: true, agentEnabled: true }
         });
 
-        expect(inngest.send).toHaveBeenCalledWith({
-            name: 'gmail/push.received',
-            data: {
-                userId: 'valid-user-id',
-                email: 'active@example.com',
-                historyId: '67890'
-            }
+        expect(createTaskMock).toHaveBeenCalled();
+        const taskArg = createTaskMock.mock.calls[0][0].task;
+
+        expect(taskArg.httpRequest.url).toContain('/api/tasks/process-email');
+        expect(taskArg.httpRequest.httpMethod).toBe('POST');
+
+        // Assert payload is correctly base64 encoded
+        const decodedPayload = JSON.parse(Buffer.from(taskArg.httpRequest.body, 'base64').toString('utf-8'));
+        expect(decodedPayload).toEqual({
+            userId: 'valid-user-id',
+            email: 'active@example.com',
+            historyId: '67890'
         });
     });
 });

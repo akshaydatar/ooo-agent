@@ -66,4 +66,4 @@ This app is designed to be deployed on Vercel or Railway. Ensure your production
 
 ## License
 
-Private / Proprietary.
+MIT

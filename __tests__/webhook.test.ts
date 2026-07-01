@@ -2,10 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '@/app/api/webhooks/gmail/route';
 import { prisma } from '@/lib/db';
 
-const createTaskMock = vi.fn().mockResolvedValue([{ name: 'mock-task-name' }]);
-const queuePathMock = vi.fn().mockReturnValue('mock-queue-path');
+// vi.mock is hoisted before variable declarations, so use vi.hoisted() to make
+// these mocks available inside the factory.
+const { createTaskMock, queuePathMock } = vi.hoisted(() => ({
+    createTaskMock: vi.fn().mockResolvedValue([{ name: 'mock-task-name' }]),
+    queuePathMock: vi.fn().mockReturnValue('mock-queue-path'),
+}));
 
-// Mock the dependencies
 vi.mock('@google-cloud/tasks', () => ({
     CloudTasksClient: vi.fn().mockImplementation(function () {
         return {

@@ -25,6 +25,10 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 
+# local databases
+prisma/*.db
+prisma/*.db-journal
+
 # AI agent orchestration
 .agent/
 .sentinel-global/
